@@ -160,7 +160,8 @@
     flex: 1;
     min-height: 100vh;
     overflow-y: auto;
-    padding: 32px 36px;
+    padding: 32px 48px;
+    zoom: 1.05;
   }
   .page { display: none; }
   .page.active { display: block; animation: fadeIn 0.2s ease; }
@@ -233,7 +234,7 @@
   .modal-overlay.open { display: flex; }
   .modal {
     background: var(--bg2); border: 1px solid var(--border);
-    border-radius: 18px; padding: 32px; width: 520px; max-width: 95vw;
+    border-radius: 18px; padding: 32px; width: 580px; max-width: 95vw;
     max-height: 90vh; overflow-y: auto;
     animation: modalIn 0.2s ease;
   }
@@ -458,16 +459,10 @@
   .sale-item-row select { flex: 2; }
   .sale-item-row input { flex: 1; }
   .sale-item-row .remove-item { cursor: pointer; color: var(--red); font-size: 18px; flex-shrink: 0; }
+  .item-desconto-hidden { display: none !important; } /* Oculta desc. de item individual quando inativo */
 
-  /* TABS (dentro de páginas) */
-  .inner-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: -1px; }
-  .inner-tab {
-    padding: 10px 18px; font-size: 14px; font-weight: 500;
-    color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent;
-    margin-bottom: -1px; transition: all 0.15s;
-  }
-  .inner-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
-  .inner-tab:hover:not(.active) { color: var(--text); }
+  /* TOTALS ROW EM VENDAS */
+  .venda-totals-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
 
   /* ── MOBILE BOTTOM NAV ── */
   .mobile-topbar {
@@ -538,7 +533,7 @@
     
     /* Força os cards e gráficos a ficarem em 1 coluna (um embaixo do outro) */
     .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr !important; gap: 14px; }
-    .form-row { grid-template-columns: 1fr !important; gap: 12px; }
+    .form-row, .venda-totals-row { grid-template-columns: 1fr !important; gap: 12px; }
     
     .page-header { flex-wrap: wrap; gap: 10px; }
     .page-header .btn { width: 100%; justify-content: center; }
@@ -566,9 +561,6 @@
     .sale-item-row { flex-direction: column; align-items: stretch; gap: 8px; padding: 14px; }
     .sale-item-row select, .sale-item-row input { max-width: 100% !important; flex: 1 1 100%; }
     .sale-item-row .remove-item { align-self: flex-end; background: rgba(255,102,102,0.1); padding: 4px 12px; border-radius: 6px; font-size: 14px; margin-top: 4px; }
-  }
-  @media(max-width: 380px) {
-    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -1171,19 +1163,29 @@
         </div>
       </div>
     </div>
+    
     <div class="form-group">
       <label>Itens da Venda</label>
       <div id="sale-items-container" class="sale-items-list"></div>
       <button class="btn btn-ghost btn-sm" onclick="addSaleItem()">+ Adicionar Item</button>
     </div>
-    <div class="form-row">
+
+    <div class="venda-totals-row">
       <div class="form-group">
-        <label>Desconto (R$)</label>
+        <label>Tipo de Desconto</label>
+        <select id="venda-tipo-desconto" onchange="updateDiscountUI()">
+          <option value="fixo">Fixo no Total (R$)</option>
+          <option value="porcento">Porcentagem (%)</option>
+          <option value="produto">Por Produto (R$)</option>
+        </select>
+      </div>
+      <div class="form-group" id="venda-desconto-container">
+        <label id="label-venda-desconto">Desconto (R$)</label>
         <input type="number" id="venda-desconto" min="0" step="0.01" value="0" oninput="calcVendaTotal()">
       </div>
       <div class="form-group">
         <label>Total da Venda</label>
-        <input type="text" id="venda-total-disp" readonly style="color:var(--gold);font-weight:600">
+        <input type="text" id="venda-total-disp" readonly style="color:var(--gold);font-weight:600;font-size:16px;">
       </div>
     </div>
     <div class="form-row">
@@ -1378,7 +1380,6 @@
 <script>
 // ============================================================
 //  FIREBASE CONFIG
-//  ⚠️ Preencha com os valores do seu projeto Firebase.
 // ============================================================
 const firebaseConfig = {
   apiKey:            "AIzaSyBtQB3oVasCl3e3B-g7mAHAdSgcSSrunDQ",
@@ -1404,10 +1405,8 @@ let vendas   = [];
 let gastos   = [];
 let clientes = [];
 
-// Referência Realtime Database para o usuário logado
 function userRef() { return db.ref('usuarios/' + currentUser.uid); }
 
-// Salva tudo no Realtime Database
 async function save(colecao) {
   if (!currentUser) return;
   const cols = colecao ? [colecao] : ['perfil','estoque','vendas','gastos','clientes'];
@@ -1427,7 +1426,6 @@ async function save(colecao) {
   await userRef().update(updates);
 }
 
-// Carrega todos os dados do Realtime Database
 async function carregarDados() {
   const snapshot = await userRef().once('value');
   if (snapshot.exists()) {
@@ -1452,16 +1450,13 @@ function navigateTo(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(i => i.classList.remove('active'));
   document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
-  // Sidebar: activate item or sub-item
   document.querySelectorAll('.nav-item[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
-  // Bottom nav: activate matching or parent
   document.querySelectorAll('.bn-item[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
   document.getElementById('page-' + page).classList.add('active');
   window.scrollTo(0, 0);
   renderPage(page);
 }
 
-// Close more menu on outside click
 document.addEventListener('click', e => {
   const menu = document.getElementById('mobile-more-menu');
   const btn = document.getElementById('bn-mais');
@@ -1491,7 +1486,6 @@ function openModal(id) {
   if(id==='modal-perfil') loadPerfilModal();
 }
 
-// "Novo Produto" button → reset + open
 function novoModal(tipo) {
   if(tipo === 'produto') {
     document.getElementById('modal-produto-title').textContent = 'Novo Produto';
@@ -1507,12 +1501,18 @@ function novoModal(tipo) {
     document.getElementById('modal-venda-title').textContent = 'Nova Venda';
     document.getElementById('venda-id').value = '';
     document.getElementById('venda-data').value = today();
+    
+    // Reseta configs de desconto
+    document.getElementById('venda-tipo-desconto').value = 'fixo';
     document.getElementById('venda-desconto').value = 0;
+    
     document.getElementById('venda-obs').value = '';
     document.getElementById('sale-items-container').innerHTML = '';
     populateClientesSelect();
     addSaleItem();
+    updateDiscountUI(); // Atualiza a UI para o tipo de desconto selecionado
     calcVendaTotal();
+    
     document.getElementById('form-cliente-rapido').style.display = 'none';
     document.getElementById('icone-cliente-rapido').textContent = '＋';
     openModal('modal-venda');
@@ -1546,10 +1546,8 @@ function renderInicio() {
   document.getElementById('welcome-date').textContent = dataFormatada;
   document.getElementById('welcome-title').textContent = nomeLoja;
   document.getElementById('sidebar-name').textContent = nomeLoja;
-  // Mobile topbar
   const mobTag = document.getElementById('mob-store-tag');
   if(mobTag) mobTag.textContent = nomeLoja;
-  // Clock
   function updateClock() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2,'0');
@@ -1588,7 +1586,6 @@ function renderInicio() {
   delta(-gastosTotalMes, -gastosTotalAnt, document.getElementById('inicio-gastos-d'));
   delta(lucro, lucroAnt, document.getElementById('inicio-lucro-d'));
 
-  // Pendentes
   const pendentes = vendas.filter(v=>v.status==='agendado');
   const pendEl = document.getElementById('inicio-pendentes');
   if(pendentes.length===0) {
@@ -1600,7 +1597,6 @@ function renderInicio() {
     }).join('');
   }
 
-  // Estoque crítico
   const criticos = estoque.filter(p=>p.quantidade <= p.estoque_minimo);
   const critEl = document.getElementById('inicio-estoque-critico');
   if(criticos.length===0) {
@@ -1613,7 +1609,6 @@ function renderInicio() {
     }).join('');
   }
 
-  // Alertas
   const alertEl = document.getElementById('inicio-alerts');
   let alerts = [];
   if(criticos.filter(p=>p.quantidade===0).length > 0)
@@ -1628,11 +1623,9 @@ function renderInicio() {
   const bA = document.getElementById('badge-alerts');
   if(alerts.length > 0) { bA.style.display=''; bA.textContent=alerts.length; }
   else bA.style.display='none';
-  // Sync mobile bottom nav alert dot
   const bnInicio = document.querySelector('.bn-item[data-page="inicio"]');
   if(bnInicio) bnInicio.classList.toggle('has-alert', alerts.length > 0);
 
-  // Chart últimos 6 meses
   const labels=[], receitas=[], despesas=[];
   for(let i=5;i>=0;i--) {
     const dt = new Date(y, m-1-i, 1);
@@ -1673,7 +1666,6 @@ function renderEstoque() {
   const filterCat = document.getElementById('est-filter-cat').value;
   const filterStatus = document.getElementById('est-filter-status').value;
 
-  // Populate category filter
   const cats = [...new Set(estoque.map(p=>p.categoria).filter(Boolean))];
   const catSel = document.getElementById('est-filter-cat');
   const curCat = catSel.value;
@@ -1691,12 +1683,10 @@ function renderEstoque() {
     return true;
   });
 
-  // Cards
   document.getElementById('est-total-itens').textContent = estoque.reduce((a,p)=>a+p.quantidade,0);
   document.getElementById('est-valor-total').textContent = fmt(estoque.reduce((a,p)=>a+p.quantidade*p.preco_venda,0));
   document.getElementById('est-abaixo-min').textContent = estoque.filter(p=>p.quantidade<=p.estoque_minimo).length;
 
-  // Tabela
   const tbody = document.getElementById('estoque-tbody');
   if(filtered.length===0) {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📦</div><p>Nenhum produto encontrado</p><button class="btn btn-gold" onclick="novoModal('produto')">+ Adicionar Produto</button></div></td></tr>`;
@@ -1720,7 +1710,6 @@ function renderEstoque() {
     }).join('');
   }
 
-  // Niveis de estoque
   const nivelEl = document.getElementById('estoque-niveis');
   nivelEl.innerHTML = estoque.slice(0,10).map(p=>{
     const max = Math.max(p.estoque_minimo*3, p.quantidade, 1);
@@ -1730,7 +1719,6 @@ function renderEstoque() {
     return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;color:var(--text2)">${p.nome}</span><span style="font-size:13px;font-weight:600">${p.quantidade}</span></div><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:${cor}"></div></div></div>`;
   }).join('') || '<div style="color:var(--text3);font-size:14px;padding:10px">Sem produtos</div>';
 
-  // Chart categorias
   if(chartEstoqueCat) chartEstoqueCat.destroy();
   const prodLabels = estoque.map(p => p.nome.length > 18 ? p.nome.slice(0,16)+'…' : p.nome);
   const prodQtds = estoque.map(p => p.quantidade);
@@ -1805,9 +1793,10 @@ async function deleteProduto(id) {
 }
 
 // ============================================================
-//  VENDAS
+//  VENDAS (ATUALIZADO COM DESCONTO FLEXÍVEL)
 // ============================================================
 let chartVendasPeriodo = null;
+
 function populateClientesSelect() {
   const sel = document.getElementById('venda-cliente');
   const cur = sel.value;
@@ -1854,6 +1843,7 @@ function salvarClienteRapido() {
   sel.style.borderColor = 'var(--green)';
   setTimeout(() => sel.style.borderColor = '', 1800);
 }
+
 function populateAnoFilter(selectId, data, dataKey) {
   const anos = [...new Set(data.map(d=>d[dataKey].slice(0,4)))].sort().reverse();
   const sel = document.getElementById(selectId);
@@ -1861,69 +1851,144 @@ function populateAnoFilter(selectId, data, dataKey) {
   sel.innerHTML = '<option value="">Todos os anos</option>' + anos.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
 }
 
+// ── Lógica de Descontos ──
+function updateDiscountUI() {
+  const tipo = document.getElementById('venda-tipo-desconto').value;
+  const globalDesc = document.getElementById('venda-desconto-container');
+  const itemDescontos = document.querySelectorAll('.item-desconto');
+
+  if (tipo === 'produto') {
+    globalDesc.style.display = 'none';
+    itemDescontos.forEach(el => el.classList.remove('item-desconto-hidden'));
+    document.getElementById('venda-desconto').value = 0; // zera desconto global
+  } else {
+    globalDesc.style.display = 'block';
+    itemDescontos.forEach(el => el.classList.add('item-desconto-hidden'));
+    itemDescontos.forEach(el => el.value = ''); // limpa descontos de itens
+
+    if (tipo === 'porcento') {
+      document.getElementById('label-venda-desconto').textContent = 'Desconto (%)';
+    } else {
+      document.getElementById('label-venda-desconto').textContent = 'Desconto (R$)';
+    }
+  }
+  calcVendaTotal();
+}
+
 function addSaleItem() {
   const container = document.getElementById('sale-items-container');
   const div = document.createElement('div');
   div.className = 'sale-item-row';
+  
+  // Adicionado o 3º input para Desconto Individual (escondido por padrão usando a classe)
   div.innerHTML = `
-    <select onchange="calcVendaTotal()" style="flex:2">
+    <select onchange="calcVendaTotal()" style="flex:2; min-width:120px;">
       <option value="">— Produto —</option>
       ${estoque.map(p=>`<option value="${p.id}" data-preco="${p.preco_venda}">${p.nome} (Qtd: ${p.quantidade})</option>`).join('')}
     </select>
-    <input type="number" min="1" value="1" placeholder="Qtd" oninput="calcVendaTotal()" style="flex:1;max-width:80px">
-    <input type="number" min="0" step="0.01" placeholder="Preço" oninput="calcVendaTotal()" style="flex:1;max-width:110px">
+    <input type="number" min="1" value="1" placeholder="Qtd" oninput="calcVendaTotal()" style="flex:1;max-width:70px">
+    <input type="number" min="0" step="0.01" placeholder="Preço" oninput="calcVendaTotal()" style="flex:1;max-width:90px">
+    <input type="number" min="0" step="0.01" placeholder="Desc R$" oninput="calcVendaTotal()" class="item-desconto item-desconto-hidden" style="flex:1;max-width:85px">
     <span class="remove-item" onclick="this.parentElement.remove();calcVendaTotal()">×</span>`;
+    
   div.querySelector('select').addEventListener('change', function() {
     const opt = this.selectedOptions[0];
     if(opt && opt.dataset.preco) div.querySelectorAll('input')[1].value = opt.dataset.preco;
     calcVendaTotal();
   });
+  
   container.appendChild(div);
+  updateDiscountUI(); // Verifica se o input de desconto recém criado deve ser exibido
 }
 
 function calcVendaTotal() {
-  let total = 0;
+  let subtotal = 0;
+  let totalDescontoItens = 0;
+  const tipo = document.getElementById('venda-tipo-desconto').value;
+
   document.querySelectorAll('#sale-items-container .sale-item-row').forEach(row => {
     const qtd = parseFloat(row.querySelectorAll('input')[0].value)||0;
     const preco = parseFloat(row.querySelectorAll('input')[1].value)||0;
-    total += qtd * preco;
+    let descItem = parseFloat(row.querySelectorAll('input')[2].value)||0;
+    
+    if (tipo !== 'produto') descItem = 0; // ignora descontos unitários se não estiver no modo por produto
+    
+    subtotal += (qtd * preco);
+    totalDescontoItens += descItem;
   });
-  const desconto = parseFloat(document.getElementById('venda-desconto').value)||0;
-  document.getElementById('venda-total-disp').value = fmt(Math.max(0, total - desconto));
-  return Math.max(0, total - desconto);
+
+  let descontoGlobalCalculado = 0;
+  
+  if (tipo === 'fixo') {
+      descontoGlobalCalculado = parseFloat(document.getElementById('venda-desconto').value)||0;
+  } else if (tipo === 'porcento') {
+      const pct = parseFloat(document.getElementById('venda-desconto').value)||0;
+      descontoGlobalCalculado = subtotal * (pct / 100);
+  } else if (tipo === 'produto') {
+      descontoGlobalCalculado = totalDescontoItens;
+  }
+
+  const totalFinal = Math.max(0, subtotal - descontoGlobalCalculado);
+  document.getElementById('venda-total-disp').value = fmt(totalFinal);
+  
+  // Retorna os dados calculados para quem chamou a função (como o salvarVenda)
+  return { total: totalFinal, descontoFinal: descontoGlobalCalculado };
 }
 
 async function salvarVenda() {
   const data = document.getElementById('venda-data').value;
   if(!data) return alert('Informe a data da venda.');
+  
+  const tipoDesc = document.getElementById('venda-tipo-desconto').value;
   const items = [];
   let valid = true;
+  
   document.querySelectorAll('#sale-items-container .sale-item-row').forEach(row => {
     const sel = row.querySelector('select');
     const qtd = parseFloat(row.querySelectorAll('input')[0].value)||0;
     const preco = parseFloat(row.querySelectorAll('input')[1].value)||0;
+    const descItem = parseFloat(row.querySelectorAll('input')[2].value)||0;
+    
     if(!sel.value) { valid = false; return; }
-    items.push({ produto_id: sel.value, quantidade: qtd, preco });
+    
+    items.push({ 
+        produto_id: sel.value, 
+        quantidade: qtd, 
+        preco: preco,
+        desconto: tipoDesc === 'produto' ? descItem : 0
+    });
   });
+  
   if(!valid || items.length===0) return alert('Adicione ao menos um item válido.');
   const id = document.getElementById('venda-id').value;
-  const total = calcVendaTotal();
+  
+  const calc = calcVendaTotal(); // Pega os cálculos atualizados
+  
   const obj = {
-    id: id || uid(), data, cliente_id: document.getElementById('venda-cliente').value,
-    items, desconto: parseFloat(document.getElementById('venda-desconto').value)||0,
-    total, status: document.getElementById('venda-status').value,
+    id: id || uid(), 
+    data, 
+    cliente_id: document.getElementById('venda-cliente').value,
+    items, 
+    tipo_desconto: tipoDesc,
+    desconto_input: parseFloat(document.getElementById('venda-desconto').value)||0,
+    desconto: calc.descontoFinal, // O desconto final exato monetário que foi abatido
+    total: calc.total,
+    status: document.getElementById('venda-status').value,
     pagamento: document.getElementById('venda-pagamento').value,
     obs: document.getElementById('venda-obs').value.trim(),
   };
-  // Atualizar estoque
+  
+  // Atualizar estoque se for uma venda nova
   if(!id) {
     items.forEach(it => {
       const prod = estoque.find(p=>p.id===it.produto_id);
       if(prod) prod.quantidade = Math.max(0, prod.quantidade - it.quantidade);
     });
   }
+  
   if(id) { const i = vendas.findIndex(v=>v.id===id); vendas[i]=obj; }
   else vendas.unshift(obj);
+  
   await save('vendas'); await save('estoque'); closeModal('modal-venda');
   document.getElementById('sale-items-container').innerHTML = '';
   document.getElementById('venda-id').value = '';
@@ -1955,7 +2020,6 @@ function renderVendas() {
   document.getElementById('v-ticket').textContent = filtered.length ? fmt(total/filtered.filter(v=>v.status==='pago').length||0) : 'R$ 0';
   document.getElementById('v-pendente').textContent = fmt(pendente);
 
-  // Top produtos
   const prodQtd = {};
   filtered.forEach(v => v.items.forEach(it => { prodQtd[it.produto_id]=(prodQtd[it.produto_id]||0)+it.quantidade; }));
   const topEl = document.getElementById('top-produtos');
@@ -1970,7 +2034,6 @@ function renderVendas() {
     }).join('');
   }
 
-  // Chart periodo
   if(chartVendasPeriodo) chartVendasPeriodo.destroy();
   const byDay = {};
   filtered.filter(v=>v.status==='pago').forEach(v => { byDay[v.data]=(byDay[v.data]||0)+v.total; });
@@ -1981,7 +2044,6 @@ function renderVendas() {
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#555a67',maxTicksLimit:8},grid:{color:'#1a1d24'}},y:{ticks:{color:'#555a67',callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:'#1a1d24'}}} }
   });
 
-  // Tabela
   const tbody = document.getElementById('vendas-tbody');
   if(filtered.length===0) {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💰</div><p>Nenhuma venda encontrada</p><button class="btn btn-gold" onclick="novoModal('venda')">+ Registrar Venda</button></div></td></tr>`;
@@ -2019,10 +2081,33 @@ function showVendaDetail(id) {
   const cli = clientes.find(c=>c.id===v.cliente_id);
   const pgMap = {dinheiro:'💵 Dinheiro',pix:'📱 PIX',cartao_debito:'💳 Débito',cartao_credito:'💳 Crédito',boleto:'📋 Boleto',fiado:'🤝 Fiado'};
   const stMap = {pago:'<span class="badge badge-green">Pago</span>',pendente:'<span class="badge badge-gold">Pendente</span>',agendado:'<span class="badge badge-blue">Agendado</span>'};
+  
+  // Renderização atualizada para mostrar os descontos individuais de produto se houver
   const itensHTML = v.items.map(it=>{
     const p = estoque.find(e=>e.id===it.produto_id);
-    return `<div class="metric-mini"><span class="label">${p?p.nome:it.produto_id}</span><span style="color:var(--text2);margin-right:12px">${it.quantidade}x ${fmt(it.preco)}</span><span class="value">${fmt(it.quantidade*it.preco)}</span></div>`;
+    const hasDesc = it.desconto && it.desconto > 0;
+    const descStr = hasDesc ? ` <br><small style="color:var(--red)">Desconto aplicado: -${fmt(it.desconto)}</small>` : '';
+    const totalItem = (it.quantidade * it.preco) - (it.desconto || 0);
+    return `
+      <div class="metric-mini" style="align-items:flex-start; padding: 12px 0;">
+        <div class="label" style="flex:1">
+          <div style="font-weight:600; color:var(--text)">${p?p.nome:it.produto_id}</div>
+          <div style="font-size:12px;color:var(--text3); margin-top:2px;">${it.quantidade}x ${fmt(it.preco)}${descStr}</div>
+        </div>
+        <div class="value">${fmt(totalItem)}</div>
+      </div>`;
   }).join('');
+  
+  // Renderização atualizada para exibir que tipo de desconto global foi aplicado
+  let globalDescHTML = '';
+  if (v.tipo_desconto === 'porcento' && v.desconto_input > 0) {
+      globalDescHTML = `<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto Global (${v.desconto_input}%)</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`;
+  } else if (v.tipo_desconto === 'fixo' && v.desconto > 0) {
+      globalDescHTML = `<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto Global</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`;
+  } else if (!v.tipo_desconto && v.desconto > 0) {
+      globalDescHTML = `<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`;
+  }
+
   document.getElementById('detalhe-venda-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
       <div><div style="font-size:13px;color:var(--text2)">Data</div><div style="font-weight:600">${fmtDate(v.data)}</div></div>
@@ -2032,9 +2117,9 @@ function showVendaDetail(id) {
     </div>
     <div class="section-title">Itens</div>
     ${itensHTML}
-    ${v.desconto?`<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`:''}
+    ${globalDescHTML}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-      <span style="font-size:15px;font-weight:600">Total</span>
+      <span style="font-size:15px;font-weight:600">Total Pago</span>
       <span style="font-family:'Playfair Display',serif;font-size:24px;color:var(--gold)">${fmt(v.total)}</span>
     </div>
     ${v.obs?`<div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:9px;font-size:14px;color:var(--text2)">${v.obs}</div>`:''}`;
@@ -2083,7 +2168,6 @@ function renderGastos() {
   document.getElementById('g-maior-nome').textContent = maior ? maior.descricao : '';
   document.getElementById('g-cats').textContent = [...new Set(filtered.map(g=>g.categoria).filter(Boolean))].length;
 
-  // Chart categorias
   const catData = {};
   filtered.forEach(g => { const c=g.categoria||'Outros'; catData[c]=(catData[c]||0)+g.valor; });
   if(chartGastosCat) chartGastosCat.destroy();
@@ -2095,7 +2179,6 @@ function renderGastos() {
     });
   }
 
-  // Chart tempo
   const byDay = {};
   filtered.forEach(g => { byDay[g.data]=(byDay[g.data]||0)+g.valor; });
   const days = Object.keys(byDay).sort().slice(-30);
@@ -2106,7 +2189,6 @@ function renderGastos() {
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#555a67',maxTicksLimit:8},grid:{color:'#1a1d24'}},y:{ticks:{color:'#555a67',callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:'#1a1d24'}}} }
   });
 
-  // Tabela
   const tbody = document.getElementById('gastos-tbody');
   if(filtered.length===0) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📊</div><p>Nenhum gasto encontrado</p><button class="btn btn-gold" onclick="novoModal('gasto')">+ Registrar Gasto</button></div></td></tr>`;
@@ -2419,7 +2501,6 @@ async function fazerRegistro() {
   clearAuthMessages();
   try {
     const cred = await auth.createUserWithEmailAndPassword(email, senha);
-    // Salva nome da loja no perfil inicial no Realtime Database
     await db.ref('usuarios/' + cred.user.uid).set({
       perfil: { nome: nomeLoja, cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' },
       estoque: [], vendas: [], gastos: [], clientes: []
@@ -2453,9 +2534,6 @@ async function fazerLogout() {
   await auth.signOut();
 }
 
-// ============================================================
-//  INIT — Auth state listener
-// ============================================================
 function initYearFilters() {
   const y = new Date().getFullYear();
   ['venda-filter-ano','gasto-filter-ano'].forEach(id => {
@@ -2468,7 +2546,6 @@ function initYearFilters() {
 
 auth.onAuthStateChanged(async user => {
   if (user) {
-    // ── Usuário logado ──
     currentUser = user;
     document.getElementById('auth-screen').style.display    = 'none';
     document.getElementById('loading-overlay').style.display = 'flex';
@@ -2484,21 +2561,20 @@ auth.onAuthStateChanged(async user => {
     initYearFilters();
     renderInicio();
   } else {
-    // ── Não autenticado ──
     currentUser = null;
-    // Reset data
     perfil   = { nome:'Minha Loja', cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' };
     estoque  = []; vendas = []; gastos = []; clientes = [];
     document.getElementById('app-root').style.display    = 'none';
     document.getElementById('loading-overlay').style.display = 'none';
     document.getElementById('auth-screen').style.display = 'flex';
-    // Reset auth form
     setAuthLoading('btn-login', false);
     setAuthLoading('btn-registro', false);
   }
 });
 </script>
-</div><div class="modal-overlay" id="modal-confirm">
+</div>
+
+<div class="modal-overlay" id="modal-confirm">
   <div class="modal" style="width:380px;text-align:center">
     <div style="font-size:36px;margin-bottom:12px" id="confirm-icon">🗑️</div>
     <div style="font-family:'Playfair Display',serif;font-size:18px;margin-bottom:8px" id="confirm-title">Confirmar exclusão</div>
