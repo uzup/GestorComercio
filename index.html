@@ -526,29 +526,46 @@
     .sidebar { display: none !important; }
     .mobile-topbar { display: flex !important; }
     .bottomnav { display: flex !important; }
+    
+    /* Remove o zoom no celular e ajusta margens */
     .main {
       margin-left: 0 !important;
-      padding: 16px 14px 80px;
+      padding: 16px 14px 80px !important;
       margin-top: 54px;
       min-height: calc(100vh - 54px - 62px);
+      zoom: 1 !important; /* Desativa o zoom no mobile */
     }
-    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr 1fr; }
-    .form-row { grid-template-columns: 1fr; }
+    
+    /* Força os cards e gráficos a ficarem em 1 coluna (um embaixo do outro) */
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr !important; gap: 14px; }
+    .form-row { grid-template-columns: 1fr !important; gap: 12px; }
+    
     .page-header { flex-wrap: wrap; gap: 10px; }
     .page-header .btn { width: 100%; justify-content: center; }
-    .filter-bar { flex-direction: column; align-items: stretch; }
+    
+    .filter-bar { flex-direction: column; align-items: stretch; gap: 10px; }
     .filter-bar input, .filter-bar select { width: 100%; min-width: unset; }
-    .table-wrap { font-size: 13px; }
-    td, th { padding: 10px 12px; }
-    .modal { border-radius: 18px 18px 0 0 !important; width: 100% !important; max-width: 100% !important; margin-top: auto; margin-bottom: 0; max-height: 90vh; }
+    
+    /* Ajustes na tabela para não espremer */
+    .table-wrap { font-size: 13px; border-radius: 10px; }
+    td, th { padding: 12px 10px; white-space: nowrap; } /* Evita que o texto quebre e fique alto */
+    
+    /* Modais ocupando a tela de forma mais fluida */
+    .modal { border-radius: 18px 18px 0 0 !important; width: 100% !important; max-width: 100% !important; margin-top: auto; margin-bottom: 0; max-height: 85vh; padding: 24px 20px; }
     .modal-overlay { align-items: flex-end !important; }
-    .inicio-loja { font-size: 20px; }
-    .card-value { font-size: 24px; }
-    .profile-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    
+    /* Ajuste de fontes */
+    .inicio-loja { font-size: 22px; }
+    .card-value { font-size: 26px; }
+    
+    .profile-header { flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; }
     .profile-details { flex-direction: column; gap: 8px; }
     .inicio-badge { display: none; }
-    .sale-item-row { flex-wrap: wrap; }
-    .sale-item-row select { flex: 1 1 100%; }
+    
+    /* Ajuste no formulário de itens da venda para não amontoar */
+    .sale-item-row { flex-direction: column; align-items: stretch; gap: 8px; padding: 14px; }
+    .sale-item-row select, .sale-item-row input { max-width: 100% !important; flex: 1 1 100%; }
+    .sale-item-row .remove-item { align-self: flex-end; background: rgba(255,102,102,0.1); padding: 4px 12px; border-radius: 6px; font-size: 14px; margin-top: 4px; }
   }
   @media(max-width: 380px) {
     .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
