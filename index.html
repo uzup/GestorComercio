@@ -390,7 +390,11 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* APP hidden until auth */
-  #app-root { display: none; }
+  #app-root { 
+    display: none; 
+    width: 100%; 
+    flex: 1; 
+  }
 
   /* LOADING OVERLAY */
   #loading-overlay {
