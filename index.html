@@ -6,10 +6,9 @@
 <title>Vitrine — Gestão de Comércio</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
   :root {
     --bg: #0d0e11;
@@ -554,7 +553,6 @@
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
 <div id="auth-screen">
   <div class="auth-card">
     <div class="auth-logo">
@@ -568,7 +566,6 @@
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-success" class="auth-success"></div>
 
-    <!-- Login form -->
     <div id="form-login">
       <div class="form-group">
         <label>E-mail</label>
@@ -582,7 +579,6 @@
       <button class="btn btn-gold" style="width:100%;justify-content:center" id="btn-login" onclick="fazerLogin()">Entrar</button>
     </div>
 
-    <!-- Registro form -->
     <div id="form-registro" style="display:none">
       <div class="form-group">
         <label>Nome da sua loja</label>
@@ -601,16 +597,13 @@
   </div>
 </div>
 
-<!-- LOADING OVERLAY -->
 <div id="loading-overlay" style="display:none">
   <div class="loading-spinner"></div>
   <div class="loading-text" id="loading-text">Carregando seus dados...</div>
 </div>
 
-<!-- APP ROOT (hidden until auth) -->
 <div id="app-root">
 
-<!-- MOBILE TOPBAR -->
 <div class="mobile-topbar">
   <div>
     <div class="brand">Vitrine</div>
@@ -622,7 +615,6 @@
   </div>
 </div>
 
-<!-- BOTTOM NAV (mobile) -->
 <nav class="bottomnav" id="bottomnav">
   <div class="bn-item active" data-page="inicio">
     <div class="bn-dot"></div>
@@ -651,7 +643,6 @@
   </div>
 </nav>
 
-<!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-logo">
     <div class="brand">Vitrine</div>
@@ -692,10 +683,8 @@
   </div>
 </aside>
 
-<!-- MAIN -->
 <main class="main">
 
-  <!-- ===== INÍCIO ===== -->
   <div class="page active" id="page-inicio">
     <div class="inicio-header">
       <div>
@@ -751,7 +740,6 @@
     </div>
   </div>
 
-  <!-- ===== VENDAS ===== -->
   <div class="page" id="page-vendas">
     <div class="page-header">
       <div>
@@ -830,7 +818,6 @@
     </div>
   </div>
 
-  <!-- ===== CLIENTES ===== -->
   <div class="page" id="page-clientes">
     <div class="page-header">
       <div>
@@ -877,7 +864,6 @@
     </div>
   </div>
 
-  <!-- ===== ESTOQUE ===== -->
   <div class="page" id="page-estoque">
     <div class="page-header">
       <div>
@@ -949,7 +935,6 @@
     </div>
   </div>
 
-  <!-- ===== GASTOS ===== -->
   <div class="page" id="page-gastos">
     <div class="page-header">
       <div>
@@ -1020,7 +1005,6 @@
     </div>
   </div>
 
-  <!-- ===== PERFIL ===== -->
   <div class="page" id="page-perfil">
     <div class="page-header">
       <div>
@@ -1057,9 +1041,6 @@
 
 </main>
 
-<!-- ========== MODAIS ========== -->
-
-<!-- Modal Produto -->
 <div class="modal-overlay" id="modal-produto">
   <div class="modal">
     <div class="modal-title">
@@ -1113,7 +1094,6 @@
   </div>
 </div>
 
-<!-- Modal Venda -->
 <div class="modal-overlay" id="modal-venda">
   <div class="modal" style="width:600px">
     <div class="modal-title">
@@ -1137,7 +1117,6 @@
           <option value="">— Cliente avulso —</option>
         </select>
 
-        <!-- Formulário rápido de novo cliente -->
         <div id="form-cliente-rapido" style="display:none;margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;animation:fadeIn 0.15s ease">
           <div style="font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Cadastro rápido de cliente</div>
           <div class="form-row" style="margin-bottom:0">
@@ -1218,7 +1197,6 @@
   </div>
 </div>
 
-<!-- Modal Gasto -->
 <div class="modal-overlay" id="modal-gasto">
   <div class="modal">
     <div class="modal-title">
@@ -1261,7 +1239,6 @@
   </div>
 </div>
 
-<!-- Modal Cliente -->
 <div class="modal-overlay" id="modal-cliente">
   <div class="modal">
     <div class="modal-title">
@@ -1304,7 +1281,6 @@
   </div>
 </div>
 
-<!-- Modal Perfil -->
 <div class="modal-overlay" id="modal-perfil">
   <div class="modal">
     <div class="modal-title">
@@ -1358,7 +1334,6 @@
   </div>
 </div>
 
-<!-- Modal Histórico Cliente -->
 <div class="modal-overlay" id="modal-historico">
   <div class="modal" style="width:640px">
     <div class="modal-title">
@@ -1369,7 +1344,6 @@
   </div>
 </div>
 
-<!-- Modal Detalhe Venda -->
 <div class="modal-overlay" id="modal-detalhe-venda">
   <div class="modal" style="width:580px">
     <div class="modal-title">
@@ -1384,12 +1358,11 @@
 // ============================================================
 //  FIREBASE CONFIG
 //  ⚠️ Preencha com os valores do seu projeto Firebase.
-//  É SEGURO deixar essas chaves no código público — a proteção
-//  real vem das Security Rules no console do Firebase.
 // ============================================================
 const firebaseConfig = {
-  apiKey:            ""AIzaSyBtQB3oVasCl3e3B-g7mAHAdSgcSSrunDQ"",
+  apiKey:            "AIzaSyBtQB3oVasCl3e3B-g7mAHAdSgcSSrunDQ",
   authDomain:        "gestor-comercio.firebaseapp.com",
+  databaseURL:       "https://gestor-comercio-default-rtdb.firebaseio.com",
   projectId:         "gestor-comercio",
   storageBucket:     "gestor-comercio.firebasestorage.app",
   messagingSenderId: "460441443371",
@@ -1398,13 +1371,10 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db   = firebase.firestore();
-
-// Habilita cache offline (funciona mesmo sem internet)
-db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+const db   = firebase.database();
 
 // ============================================================
-//  DATA — variáveis em memória (espelho do Firestore)
+//  DATA — variáveis em memória
 // ============================================================
 let currentUser = null;
 let perfil   = { nome:'Minha Loja', cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' };
@@ -1413,37 +1383,39 @@ let vendas   = [];
 let gastos   = [];
 let clientes = [];
 
-// Referências Firestore para o usuário logado
-function userDoc(col) { return db.collection('usuarios').doc(currentUser.uid).collection(col); }
-function userPerfil() { return db.collection('usuarios').doc(currentUser.uid); }
+// Referência Realtime Database para o usuário logado
+function userRef() { return db.ref('usuarios/' + currentUser.uid); }
 
-// Salva tudo no Firestore (batch write por coleção)
+// Salva tudo no Realtime Database
 async function save(colecao) {
   if (!currentUser) return;
   const cols = colecao ? [colecao] : ['perfil','estoque','vendas','gastos','clientes'];
+  
+  let updates = {};
   for (const col of cols) {
     if (col === 'perfil') {
-      await userPerfil().set({ perfil }, { merge: true });
+      updates['perfil'] = perfil;
     } else {
       const dados = col === 'estoque'  ? estoque
                   : col === 'vendas'   ? vendas
                   : col === 'gastos'   ? gastos
                   : clientes;
-      await userPerfil().set({ [col]: dados }, { merge: true });
+      updates[col] = dados;
     }
   }
+  await userRef().update(updates);
 }
 
-// Carrega todos os dados do Firestore
+// Carrega todos os dados do Realtime Database
 async function carregarDados() {
-  const snap = await userPerfil().get();
-  if (snap.exists) {
-    const d = snap.data();
+  const snapshot = await userRef().once('value');
+  if (snapshot.exists()) {
+    const d = snapshot.val();
     if (d.perfil)   perfil   = { ...perfil, ...d.perfil };
-    if (d.estoque)  estoque  = d.estoque;
-    if (d.vendas)   vendas   = d.vendas;
-    if (d.gastos)   gastos   = d.gastos;
-    if (d.clientes) clientes = d.clientes;
+    if (d.estoque)  estoque  = d.estoque || [];
+    if (d.vendas)   vendas   = d.vendas || [];
+    if (d.gastos)   gastos   = d.gastos || [];
+    if (d.clientes) clientes = d.clientes || [];
   }
 }
 
@@ -2426,8 +2398,8 @@ async function fazerRegistro() {
   clearAuthMessages();
   try {
     const cred = await auth.createUserWithEmailAndPassword(email, senha);
-    // Salva nome da loja no perfil inicial
-    await db.collection('usuarios').doc(cred.user.uid).set({
+    // Salva nome da loja no perfil inicial no Realtime Database
+    await db.ref('usuarios/' + cred.user.uid).set({
       perfil: { nome: nomeLoja, cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' },
       estoque: [], vendas: [], gastos: [], clientes: []
     });
@@ -2505,10 +2477,7 @@ auth.onAuthStateChanged(async user => {
   }
 });
 </script>
-</div><!-- /app-root -->
-
-<!-- CUSTOM CONFIRM MODAL -->
-<div class="modal-overlay" id="modal-confirm">
+</div><div class="modal-overlay" id="modal-confirm">
   <div class="modal" style="width:380px;text-align:center">
     <div style="font-size:36px;margin-bottom:12px" id="confirm-icon">🗑️</div>
     <div style="font-family:'Playfair Display',serif;font-size:18px;margin-bottom:8px" id="confirm-title">Confirmar exclusão</div>
