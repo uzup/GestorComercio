@@ -6,6 +6,10 @@
 <title>Vitrine — Gestão de Comércio</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --bg: #0d0e11;
@@ -343,6 +347,82 @@
   .metric-mini .label { font-size: 14px; color: var(--text2); flex: 1; }
   .metric-mini .value { font-size: 15px; font-weight: 600; color: var(--text); }
 
+  /* AUTH SCREEN */
+  #auth-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .auth-card {
+    width: 100%; max-width: 420px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 22px; padding: 40px 36px;
+    animation: fadeIn 0.3s ease;
+  }
+  .auth-logo { text-align: center; margin-bottom: 28px; }
+  .auth-logo .brand { font-family: 'Playfair Display',serif; font-size: 32px; color: var(--gold); }
+  .auth-logo .sub { font-size: 13px; color: var(--text3); margin-top: 4px; letter-spacing: 0.06em; text-transform: uppercase; }
+  .auth-tabs { display: flex; gap: 0; margin-bottom: 28px; background: var(--bg3); border-radius: 10px; padding: 4px; }
+  .auth-tab {
+    flex: 1; text-align: center; padding: 9px; border-radius: 8px;
+    font-size: 14px; font-weight: 600; cursor: pointer; color: var(--text2);
+    transition: all 0.15s;
+  }
+  .auth-tab.active { background: var(--bg2); color: var(--gold); box-shadow: 0 1px 4px rgba(0,0,0,0.3); }
+  .auth-error {
+    background: rgba(255,102,102,0.1); border: 1px solid rgba(255,102,102,0.25);
+    color: var(--red); border-radius: 9px; padding: 11px 14px;
+    font-size: 13px; margin-bottom: 16px; display: none;
+  }
+  .auth-success {
+    background: rgba(62,207,142,0.1); border: 1px solid rgba(62,207,142,0.25);
+    color: var(--green); border-radius: 9px; padding: 11px 14px;
+    font-size: 13px; margin-bottom: 16px; display: none;
+  }
+  .auth-divider { text-align: center; color: var(--text3); font-size: 12px; margin: 6px 0 14px; }
+  .auth-forgot { font-size: 13px; color: var(--text3); text-align: right; cursor: pointer; margin-top: -8px; margin-bottom: 16px; }
+  .auth-forgot:hover { color: var(--gold); }
+  .auth-spinner {
+    display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.3);
+    border-top-color: #0d0e11; border-radius: 50%;
+    animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* APP hidden until auth */
+  #app-root { display: none; }
+
+  /* LOADING OVERLAY */
+  #loading-overlay {
+    position: fixed; inset: 0; z-index: 8888;
+    background: var(--bg); display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 16px;
+  }
+  .loading-spinner {
+    width: 36px; height: 36px; border: 3px solid var(--border);
+    border-top-color: var(--gold); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  .loading-text { font-size: 14px; color: var(--text2); }
+
+  /* LOGOUT BUTTON */
+  .btn-logout {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-radius: 9px; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: var(--text3);
+    transition: all 0.15s; border: 1px solid transparent;
+    background: none; font-family: 'DM Sans', sans-serif; width: 100%;
+  }
+  .btn-logout:hover { background: rgba(255,102,102,0.1); color: var(--red); border-color: rgba(255,102,102,0.2); }
+  .mob-logout {
+    width: 30px; height: 30px; border-radius: 8px; background: var(--bg3);
+    border: 1px solid var(--border); display: flex; align-items: center;
+    justify-content: center; cursor: pointer; font-size: 14px;
+    transition: all 0.15s;
+  }
+  .mob-logout:hover { background: rgba(255,102,102,0.15); border-color: rgba(255,102,102,0.3); }
+
   /* SCROLLBAR */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -474,6 +554,62 @@
 </head>
 <body>
 
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="brand">Vitrine</div>
+      <div class="sub">Gestão de Comércio</div>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Entrar</div>
+      <div class="auth-tab" id="tab-registro" onclick="switchAuthTab('registro')">Criar conta</div>
+    </div>
+    <div id="auth-error" class="auth-error"></div>
+    <div id="auth-success" class="auth-success"></div>
+
+    <!-- Login form -->
+    <div id="form-login">
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')fazerLogin()">
+      </div>
+      <div class="form-group">
+        <label>Senha</label>
+        <input type="password" id="login-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()">
+      </div>
+      <div class="auth-forgot" onclick="recuperarSenha()">Esqueceu a senha?</div>
+      <button class="btn btn-gold" style="width:100%;justify-content:center" id="btn-login" onclick="fazerLogin()">Entrar</button>
+    </div>
+
+    <!-- Registro form -->
+    <div id="form-registro" style="display:none">
+      <div class="form-group">
+        <label>Nome da sua loja</label>
+        <input type="text" id="reg-loja" placeholder="Ex: Moda & Arte" onkeydown="if(event.key==='Enter')fazerRegistro()">
+      </div>
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="reg-email" placeholder="seu@email.com" onkeydown="if(event.key==='Enter')fazerRegistro()">
+      </div>
+      <div class="form-group">
+        <label>Senha <small style="color:var(--text3)">(mín. 6 caracteres)</small></label>
+        <input type="password" id="reg-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerRegistro()">
+      </div>
+      <button class="btn btn-gold" style="width:100%;justify-content:center" id="btn-registro" onclick="fazerRegistro()">Criar conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay" style="display:none">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Carregando seus dados...</div>
+</div>
+
+<!-- APP ROOT (hidden until auth) -->
+<div id="app-root">
+
 <!-- MOBILE TOPBAR -->
 <div class="mobile-topbar">
   <div>
@@ -482,6 +618,7 @@
   </div>
   <div class="mobile-topbar-right">
     <div class="mobile-topbar-avatar" id="mob-avatar">🏪</div>
+    <div class="mob-logout" onclick="fazerLogout()" title="Sair">↩️</div>
   </div>
 </div>
 
@@ -547,6 +684,11 @@
       <div class="store-name" id="sidebar-name">Minha Loja</div>
       <div class="store-sub">Proprietário</div>
     </div>
+  </div>
+  <div style="padding:10px 12px 16px">
+    <button class="btn-logout" onclick="fazerLogout()">
+      <span>↩️</span><span>Sair da conta</span>
+    </button>
   </div>
 </aside>
 
@@ -1240,25 +1382,69 @@
 
 <script>
 // ============================================================
-//  DATA LAYER — localStorage
+//  FIREBASE CONFIG
+//  ⚠️ Preencha com os valores do seu projeto Firebase.
+//  É SEGURO deixar essas chaves no código público — a proteção
+//  real vem das Security Rules no console do Firebase.
 // ============================================================
-const DB = {
-  get: (k, def=[]) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch(e){ return def; } },
-  set: (k, v) => localStorage.setItem(k, JSON.stringify(v)),
+const firebaseConfig = {
+  apiKey:            ""AIzaSyBtQB3oVasCl3e3B-g7mAHAdSgcSSrunDQ"",
+  authDomain:        "gestor-comercio.firebaseapp.com",
+  projectId:         "gestor-comercio",
+  storageBucket:     "gestor-comercio.firebasestorage.app",
+  messagingSenderId: "460441443371",
+  appId:             "1:460441443371:web:f58d07684ab1a287d49e6e"
 };
 
-let perfil     = DB.get('vit_perfil', { nome:'Minha Loja', cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' });
-let estoque    = DB.get('vit_estoque', []);
-let vendas     = DB.get('vit_vendas', []);
-let gastos     = DB.get('vit_gastos', []);
-let clientes   = DB.get('vit_clientes', []);
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
 
-function save() {
-  DB.set('vit_perfil',   perfil);
-  DB.set('vit_estoque',  estoque);
-  DB.set('vit_vendas',   vendas);
-  DB.set('vit_gastos',   gastos);
-  DB.set('vit_clientes', clientes);
+// Habilita cache offline (funciona mesmo sem internet)
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+
+// ============================================================
+//  DATA — variáveis em memória (espelho do Firestore)
+// ============================================================
+let currentUser = null;
+let perfil   = { nome:'Minha Loja', cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' };
+let estoque  = [];
+let vendas   = [];
+let gastos   = [];
+let clientes = [];
+
+// Referências Firestore para o usuário logado
+function userDoc(col) { return db.collection('usuarios').doc(currentUser.uid).collection(col); }
+function userPerfil() { return db.collection('usuarios').doc(currentUser.uid); }
+
+// Salva tudo no Firestore (batch write por coleção)
+async function save(colecao) {
+  if (!currentUser) return;
+  const cols = colecao ? [colecao] : ['perfil','estoque','vendas','gastos','clientes'];
+  for (const col of cols) {
+    if (col === 'perfil') {
+      await userPerfil().set({ perfil }, { merge: true });
+    } else {
+      const dados = col === 'estoque'  ? estoque
+                  : col === 'vendas'   ? vendas
+                  : col === 'gastos'   ? gastos
+                  : clientes;
+      await userPerfil().set({ [col]: dados }, { merge: true });
+    }
+  }
+}
+
+// Carrega todos os dados do Firestore
+async function carregarDados() {
+  const snap = await userPerfil().get();
+  if (snap.exists) {
+    const d = snap.data();
+    if (d.perfil)   perfil   = { ...perfil, ...d.perfil };
+    if (d.estoque)  estoque  = d.estoque;
+    if (d.vendas)   vendas   = d.vendas;
+    if (d.gastos)   gastos   = d.gastos;
+    if (d.clientes) clientes = d.clientes;
+  }
 }
 
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
@@ -1583,7 +1769,7 @@ function renderEstoque() {
   }
 }
 
-function salvarProduto() {
+async function salvarProduto() {
   const nome = document.getElementById('produto-nome').value.trim();
   if(!nome) return alert('Informe o nome do produto.');
   const id = document.getElementById('produto-id').value;
@@ -1600,7 +1786,7 @@ function salvarProduto() {
   };
   if(id) { const i = estoque.findIndex(p=>p.id===id); estoque[i] = obj; }
   else estoque.push(obj);
-  save(); closeModal('modal-produto'); renderEstoque();
+  await save('estoque'); closeModal('modal-produto'); renderEstoque();
 }
 
 function editProduto(id) {
@@ -1622,7 +1808,7 @@ function editProduto(id) {
 async function deleteProduto(id) {
   const ok = await customConfirm('Este produto será removido do estoque permanentemente.', '📦', 'Excluir produto?');
   if(!ok) return;
-  estoque = estoque.filter(p=>p.id!==id); save(); renderEstoque();
+  estoque = estoque.filter(p=>p.id!==id); await save('estoque'); renderEstoque();
 }
 
 // ============================================================
@@ -1666,7 +1852,7 @@ function salvarClienteRapido() {
     obs: ''
   };
   clientes.push(novo);
-  save();
+  save('clientes');
   populateClientesSelect();
   document.getElementById('venda-cliente').value = novo.id;
   toggleClienteRapido();
@@ -1714,7 +1900,7 @@ function calcVendaTotal() {
   return Math.max(0, total - desconto);
 }
 
-function salvarVenda() {
+async function salvarVenda() {
   const data = document.getElementById('venda-data').value;
   if(!data) return alert('Informe a data da venda.');
   const items = [];
@@ -1745,7 +1931,7 @@ function salvarVenda() {
   }
   if(id) { const i = vendas.findIndex(v=>v.id===id); vendas[i]=obj; }
   else vendas.unshift(obj);
-  save(); closeModal('modal-venda');
+  await save('vendas'); await save('estoque'); closeModal('modal-venda');
   document.getElementById('sale-items-container').innerHTML = '';
   document.getElementById('venda-id').value = '';
   renderVendas(); renderEstoque();
@@ -1830,9 +2016,9 @@ function renderVendas() {
   }
 }
 
-function marcarPago(id) {
+async function marcarPago(id) {
   const v = vendas.find(v=>v.id===id); if(!v) return;
-  v.status = 'pago'; save(); renderVendas(); renderInicio();
+  v.status = 'pago'; await save('vendas'); renderVendas(); renderInicio();
 }
 
 function showVendaDetail(id) {
@@ -1865,7 +2051,7 @@ function showVendaDetail(id) {
 async function deleteVenda(id) {
   const ok = await customConfirm('Esta venda será removida permanentemente.', '💰', 'Excluir venda?');
   if(!ok) return;
-  vendas = vendas.filter(v=>v.id!==id); save(); renderVendas();
+  vendas = vendas.filter(v=>v.id!==id); await save('vendas'); renderVendas();
 }
 
 // ============================================================
@@ -1946,7 +2132,7 @@ function renderGastos() {
   }
 }
 
-function salvarGasto() {
+async function salvarGasto() {
   const descricao = document.getElementById('gasto-descricao').value.trim();
   const valor = parseFloat(document.getElementById('gasto-valor').value);
   const data = document.getElementById('gasto-data').value;
@@ -1957,7 +2143,7 @@ function salvarGasto() {
   const obj = { id:id||uid(), data, descricao, categoria:document.getElementById('gasto-categoria').value.trim(), valor, obs:document.getElementById('gasto-obs').value.trim() };
   if(id) { const i=gastos.findIndex(g=>g.id===id); gastos[i]=obj; }
   else gastos.unshift(obj);
-  save(); closeModal('modal-gasto'); renderGastos();
+  await save('gastos'); closeModal('modal-gasto'); renderGastos();
 }
 
 function editGasto(id) {
@@ -1974,7 +2160,7 @@ function editGasto(id) {
 async function deleteGasto(id) {
   const ok = await customConfirm('Este gasto será removido permanentemente.', '📊', 'Excluir gasto?');
   if(!ok) return;
-  gastos = gastos.filter(g=>g.id!==id); save(); renderGastos();
+  gastos = gastos.filter(g=>g.id!==id); await save('gastos'); renderGastos();
 }
 
 // ============================================================
@@ -2016,14 +2202,14 @@ function renderClientes() {
   }
 }
 
-function salvarCliente() {
+async function salvarCliente() {
   const nome = document.getElementById('cliente-nome').value.trim();
   if(!nome) return alert('Informe o nome do cliente.');
   const id = document.getElementById('cliente-id').value;
   const obj = { id:id||uid(), nome, cpf:document.getElementById('cliente-cpf').value.trim(), tel:document.getElementById('cliente-tel').value.trim(), email:document.getElementById('cliente-email').value.trim(), end:document.getElementById('cliente-end').value.trim(), obs:document.getElementById('cliente-obs').value.trim() };
   if(id) { const i=clientes.findIndex(c=>c.id===id); clientes[i]=obj; }
   else clientes.push(obj);
-  save(); closeModal('modal-cliente'); renderClientes();
+  await save('clientes'); closeModal('modal-cliente'); renderClientes();
 }
 
 function editCliente(id) {
@@ -2042,7 +2228,7 @@ function editCliente(id) {
 async function deleteCliente(id) {
   const ok = await customConfirm('O cliente e seu vínculo com vendas será removido.', '👥', 'Excluir cliente?');
   if(!ok) return;
-  clientes = clientes.filter(c=>c.id!==id); save(); renderClientes();
+  clientes = clientes.filter(c=>c.id!==id); await save('clientes'); renderClientes();
 }
 
 function showHistorico(clienteId) {
@@ -2105,7 +2291,7 @@ function handleLogoUpload(e) {
   reader.readAsDataURL(file);
 }
 
-function salvarPerfil() {
+async function salvarPerfil() {
   perfil.nome = document.getElementById('perfil-nome-input').value.trim()||'Minha Loja';
   perfil.cnpj = document.getElementById('perfil-cnpj-input').value.trim();
   perfil.tel = document.getElementById('perfil-tel-input').value.trim();
@@ -2113,7 +2299,7 @@ function salvarPerfil() {
   perfil.end = document.getElementById('perfil-end-input').value.trim();
   perfil.segmento = document.getElementById('perfil-segmento-input').value.trim();
   perfil.desc = document.getElementById('perfil-desc-input').value.trim();
-  save(); closeModal('modal-perfil'); renderPerfil();
+  await save('perfil'); closeModal('modal-perfil'); renderPerfil();
   document.getElementById('sidebar-name').textContent = perfil.nome;
   document.getElementById('welcome-title').textContent = `Bem-vindo, ${perfil.nome}!`;
   updateSidebarAvatar();
@@ -2189,7 +2375,93 @@ function confirmResolve(val) {
 }
 
 // ============================================================
-//  INIT
+//  AUTH FUNCTIONS
+// ============================================================
+function switchAuthTab(tab) {
+  document.getElementById('form-login').style.display    = tab === 'login'    ? '' : 'none';
+  document.getElementById('form-registro').style.display = tab === 'registro' ? '' : 'none';
+  document.getElementById('tab-login').classList.toggle('active',    tab === 'login');
+  document.getElementById('tab-registro').classList.toggle('active', tab === 'registro');
+  clearAuthMessages();
+}
+function showAuthError(msg)   { const el=document.getElementById('auth-error');   el.textContent=msg; el.style.display=''; document.getElementById('auth-success').style.display='none'; }
+function showAuthSuccess(msg) { const el=document.getElementById('auth-success'); el.textContent=msg; el.style.display=''; document.getElementById('auth-error').style.display='none'; }
+function clearAuthMessages()  { document.getElementById('auth-error').style.display='none'; document.getElementById('auth-success').style.display='none'; }
+
+function setAuthLoading(btn, loading) {
+  const el = document.getElementById(btn);
+  el.disabled = loading;
+  el.innerHTML = loading ? '<span class="auth-spinner"></span>Aguarde...' : (btn==='btn-login' ? 'Entrar' : 'Criar conta');
+}
+
+async function fazerLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const senha = document.getElementById('login-senha').value;
+  if (!email || !senha) return showAuthError('Preencha e-mail e senha.');
+  setAuthLoading('btn-login', true);
+  clearAuthMessages();
+  try {
+    await auth.signInWithEmailAndPassword(email, senha);
+  } catch(e) {
+    setAuthLoading('btn-login', false);
+    const msgs = {
+      'auth/user-not-found':    'Nenhuma conta encontrada com este e-mail.',
+      'auth/wrong-password':    'Senha incorreta.',
+      'auth/invalid-email':     'E-mail inválido.',
+      'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
+      'auth/invalid-credential':'E-mail ou senha incorretos.',
+    };
+    showAuthError(msgs[e.code] || 'Erro ao entrar: ' + e.message);
+  }
+}
+
+async function fazerRegistro() {
+  const nomeLoja = document.getElementById('reg-loja').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const senha    = document.getElementById('reg-senha').value;
+  if (!nomeLoja) return showAuthError('Informe o nome da sua loja.');
+  if (!email)    return showAuthError('Informe seu e-mail.');
+  if (senha.length < 6) return showAuthError('A senha deve ter pelo menos 6 caracteres.');
+  setAuthLoading('btn-registro', true);
+  clearAuthMessages();
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, senha);
+    // Salva nome da loja no perfil inicial
+    await db.collection('usuarios').doc(cred.user.uid).set({
+      perfil: { nome: nomeLoja, cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' },
+      estoque: [], vendas: [], gastos: [], clientes: []
+    });
+  } catch(e) {
+    setAuthLoading('btn-registro', false);
+    const msgs = {
+      'auth/email-already-in-use': 'Este e-mail já está cadastrado.',
+      'auth/invalid-email':        'E-mail inválido.',
+      'auth/weak-password':        'Senha muito fraca.',
+    };
+    showAuthError(msgs[e.code] || 'Erro ao criar conta: ' + e.message);
+  }
+}
+
+async function recuperarSenha() {
+  const email = document.getElementById('login-email').value.trim();
+  if (!email) return showAuthError('Digite seu e-mail acima primeiro.');
+  clearAuthMessages();
+  try {
+    await auth.sendPasswordResetEmail(email);
+    showAuthSuccess('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
+  } catch(e) {
+    showAuthError('Não foi possível enviar o e-mail. Verifique o endereço.');
+  }
+}
+
+async function fazerLogout() {
+  const ok = await customConfirm('Você será desconectado da sua conta.', '↩️', 'Sair da conta?', 'Sair');
+  if (!ok) return;
+  await auth.signOut();
+}
+
+// ============================================================
+//  INIT — Auth state listener
 // ============================================================
 function initYearFilters() {
   const y = new Date().getFullYear();
@@ -2201,9 +2473,40 @@ function initYearFilters() {
   });
 }
 
-initYearFilters();
-renderInicio();
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    // ── Usuário logado ──
+    currentUser = user;
+    document.getElementById('auth-screen').style.display    = 'none';
+    document.getElementById('loading-overlay').style.display = 'flex';
+
+    try {
+      await carregarDados();
+    } catch(e) {
+      console.warn('Erro ao carregar dados:', e);
+    }
+
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('app-root').style.display = 'block';
+    initYearFilters();
+    renderInicio();
+  } else {
+    // ── Não autenticado ──
+    currentUser = null;
+    // Reset data
+    perfil   = { nome:'Minha Loja', cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' };
+    estoque  = []; vendas = []; gastos = []; clientes = [];
+    document.getElementById('app-root').style.display    = 'none';
+    document.getElementById('loading-overlay').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+    // Reset auth form
+    setAuthLoading('btn-login', false);
+    setAuthLoading('btn-registro', false);
+  }
+});
 </script>
+</div><!-- /app-root -->
+
 <!-- CUSTOM CONFIRM MODAL -->
 <div class="modal-overlay" id="modal-confirm">
   <div class="modal" style="width:380px;text-align:center">
