@@ -249,16 +249,26 @@
   /* CHART */
   .chart-container { position: relative; }
 
-  /* INICIO PAGE */
-  .inicio-welcome {
-    background: linear-gradient(135deg, rgba(232,184,75,0.08) 0%, rgba(232,184,75,0.02) 100%);
-    border: 1px solid rgba(232,184,75,0.15);
-    border-radius: var(--radius); padding: 24px; margin-bottom: 24px;
-    display: flex; align-items: center; gap: 20px;
+  /* INICIO HEADER */
+  .inicio-header {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    margin-bottom: 24px; gap: 12px; flex-wrap: wrap;
   }
-  .welcome-icon { font-size: 40px; }
-  .welcome-title { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--gold); }
-  .welcome-sub { font-size: 14px; color: var(--text2); margin-top: 4px; }
+  .inicio-data {
+    font-size: 13px; font-weight: 500; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px;
+  }
+  .inicio-loja {
+    font-family: 'Playfair Display', serif; font-size: 26px; color: var(--text);
+    line-height: 1.1;
+  }
+  .inicio-badges { display: flex; align-items: center; gap: 8px; }
+  .inicio-badge {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 9px; padding: 8px 14px;
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
+  }
 
   /* EMPTY STATE */
   .empty-state {
@@ -336,22 +346,133 @@
   .inner-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
   .inner-tab:hover:not(.active) { color: var(--text); }
 
-  /* RESPONSIVE */
+  /* ── MOBILE BOTTOM NAV ── */
+  .mobile-topbar {
+    display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 0 16px; height: 54px;
+    align-items: center; justify-content: space-between;
+  }
+  .mobile-topbar .brand { font-family: "Playfair Display",serif; font-size: 18px; color: var(--gold); }
+  .mobile-topbar .store-tag { font-size: 12px; color: var(--text3); }
+  .mobile-topbar-right { display: flex; align-items: center; gap: 10px; }
+  .mobile-topbar-avatar {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--bg3); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; overflow: hidden;
+  }
+  .mobile-topbar-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+  .bottomnav {
+    display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    padding: 0 4px env(safe-area-inset-bottom, 8px);
+    height: 62px; align-items: center;
+  }
+  .bn-item {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 3px; padding: 6px 2px;
+    cursor: pointer; border-radius: 10px; transition: background 0.15s;
+    color: var(--text3); position: relative;
+  }
+  .bn-item.active { color: var(--gold); }
+  .bn-item .bn-icon { font-size: 20px; line-height: 1; }
+  .bn-item .bn-label { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; }
+  .bn-item .bn-dot {
+    position: absolute; top: 4px; right: 14px;
+    width: 7px; height: 7px; background: var(--red);
+    border-radius: 50%; display: none;
+  }
+  .bn-item.has-alert .bn-dot { display: block; }
+
+  /* RESPONSIVE — TABLET */
   @media(max-width: 900px) {
-    .sidebar { width: 60px; }
-    .sidebar-logo .brand, .sidebar-logo .tagline, .nav-item span, .store-info, .nav-item .badge { display: none; }
-    .main { margin-left: 60px; padding: 20px; }
+    .sidebar { width: 64px; }
+    .sidebar-logo .brand, .sidebar-logo .tagline, .nav-item span, .store-info { display: none; }
+    .nav-item .badge { display: none; }
+    .main { margin-left: 64px; padding: 20px; }
     .grid-4, .grid-3 { grid-template-columns: 1fr 1fr; }
     .grid-2 { grid-template-columns: 1fr; }
     .form-row { grid-template-columns: 1fr; }
   }
-  @media(max-width: 600px) {
+
+  /* RESPONSIVE — MOBILE */
+  @media(max-width: 640px) {
+    body { overflow: hidden auto; }
+    .sidebar { display: none !important; }
+    .mobile-topbar { display: flex !important; }
+    .bottomnav { display: flex !important; }
+    .main {
+      margin-left: 0 !important;
+      padding: 16px 14px 80px;
+      margin-top: 54px;
+      min-height: calc(100vh - 54px - 62px);
+    }
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .page-header { flex-wrap: wrap; gap: 10px; }
+    .page-header .btn { width: 100%; justify-content: center; }
+    .filter-bar { flex-direction: column; align-items: stretch; }
+    .filter-bar input, .filter-bar select { width: 100%; min-width: unset; }
+    .table-wrap { font-size: 13px; }
+    td, th { padding: 10px 12px; }
+    .modal { border-radius: 18px 18px 0 0 !important; width: 100% !important; max-width: 100% !important; margin-top: auto; margin-bottom: 0; max-height: 90vh; }
+    .modal-overlay { align-items: flex-end !important; }
+    .inicio-loja { font-size: 20px; }
+    .card-value { font-size: 24px; }
+    .profile-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    .profile-details { flex-direction: column; gap: 8px; }
+    .inicio-badge { display: none; }
+    .sale-item-row { flex-wrap: wrap; }
+    .sale-item-row select { flex: 1 1 100%; }
+  }
+  @media(max-width: 380px) {
     .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
-    .main { padding: 16px; }
   }
 </style>
 </head>
 <body>
+
+<!-- MOBILE TOPBAR -->
+<div class="mobile-topbar">
+  <div>
+    <div class="brand">Vitrine</div>
+    <div class="store-tag" id="mob-store-tag">Gestão de Comércio</div>
+  </div>
+  <div class="mobile-topbar-right">
+    <div class="mobile-topbar-avatar" id="mob-avatar">🏪</div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV (mobile) -->
+<nav class="bottomnav" id="bottomnav">
+  <div class="bn-item active" data-page="inicio">
+    <div class="bn-dot"></div>
+    <span class="bn-icon">🏠</span>
+    <span class="bn-label">Início</span>
+  </div>
+  <div class="bn-item" data-page="estoque">
+    <span class="bn-icon">📦</span>
+    <span class="bn-label">Estoque</span>
+  </div>
+  <div class="bn-item" data-page="vendas">
+    <span class="bn-icon">💰</span>
+    <span class="bn-label">Vendas</span>
+  </div>
+  <div class="bn-item" data-page="gastos">
+    <span class="bn-icon">📊</span>
+    <span class="bn-label">Gastos</span>
+  </div>
+  <div class="bn-item" data-page="clientes">
+    <span class="bn-icon">👥</span>
+    <span class="bn-label">Clientes</span>
+  </div>
+  <div class="bn-item" data-page="perfil">
+    <span class="bn-icon">🏪</span>
+    <span class="bn-label">Loja</span>
+  </div>
+</nav>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
@@ -394,11 +515,13 @@
 
   <!-- ===== INÍCIO ===== -->
   <div class="page active" id="page-inicio">
-    <div class="inicio-welcome">
-      <div class="welcome-icon">👋</div>
+    <div class="inicio-header">
       <div>
-        <div class="welcome-title" id="welcome-title">Bem-vindo, Minha Loja!</div>
-        <div class="welcome-sub" id="welcome-date"></div>
+        <div class="inicio-data" id="welcome-date"></div>
+        <div class="inicio-loja" id="welcome-title"></div>
+      </div>
+      <div class="inicio-badges">
+        <div class="inicio-badge" id="badge-hora"></div>
       </div>
     </div>
 
@@ -820,10 +943,48 @@
         <input type="date" id="venda-data">
       </div>
       <div class="form-group">
-        <label>Cliente</label>
+        <label style="display:flex;align-items:center;justify-content:space-between">
+          <span>Cliente</span>
+          <span id="btn-novo-cliente-rapido" onclick="toggleClienteRapido()" style="font-size:12px;color:var(--gold);cursor:pointer;font-weight:600;display:flex;align-items:center;gap:4px">
+            <span id="icone-cliente-rapido">＋</span> Novo cliente
+          </span>
+        </label>
         <select id="venda-cliente">
-          <option value="">— Sem cliente cadastrado —</option>
+          <option value="">— Cliente avulso —</option>
         </select>
+
+        <!-- Formulário rápido de novo cliente -->
+        <div id="form-cliente-rapido" style="display:none;margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;animation:fadeIn 0.15s ease">
+          <div style="font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Cadastro rápido de cliente</div>
+          <div class="form-row" style="margin-bottom:0">
+            <div class="form-group" style="margin-bottom:10px">
+              <label>Nome *</label>
+              <input type="text" id="qc-nome" placeholder="Nome completo">
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+              <label>CPF / CNPJ</label>
+              <input type="text" id="qc-cpf" placeholder="000.000.000-00">
+            </div>
+          </div>
+          <div class="form-row" style="margin-bottom:0">
+            <div class="form-group" style="margin-bottom:10px">
+              <label>Telefone</label>
+              <input type="text" id="qc-tel" placeholder="(00) 00000-0000">
+            </div>
+            <div class="form-group" style="margin-bottom:10px">
+              <label>E-mail</label>
+              <input type="email" id="qc-email" placeholder="email@exemplo.com">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label>Endereço</label>
+            <input type="text" id="qc-end" placeholder="Rua, número, bairro, cidade">
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-ghost btn-sm" onclick="toggleClienteRapido()">Cancelar</button>
+            <button class="btn btn-gold btn-sm" onclick="salvarClienteRapido()">✓ Salvar e Selecionar</button>
+          </div>
+        </div>
       </div>
     </div>
     <div class="form-group">
@@ -1066,15 +1227,18 @@ function today() { return new Date().toISOString().slice(0,10); }
 // ============================================================
 //  NAVIGATION
 // ============================================================
-document.querySelectorAll('.nav-item').forEach(item => {
-  item.addEventListener('click', () => {
-    const p = item.dataset.page;
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
-    item.classList.add('active');
-    document.getElementById('page-' + p).classList.add('active');
-    renderPage(p);
-  });
+function navigateTo(page) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.bn-item').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+  document.querySelectorAll('[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  window.scrollTo(0, 0);
+  renderPage(page);
+}
+
+document.querySelectorAll('.nav-item, .bn-item').forEach(item => {
+  item.addEventListener('click', () => navigateTo(item.dataset.page));
 });
 
 function renderPage(p) {
@@ -1096,6 +1260,8 @@ function openModal(id) {
     populateClientesSelect();
     if(!document.getElementById('sale-items-container').children.length) addSaleItem();
     calcVendaTotal();
+    document.getElementById('form-cliente-rapido').style.display = 'none';
+    document.getElementById('icone-cliente-rapido').textContent = '＋';
   }
   if(id==='modal-produto') {
     document.getElementById('modal-produto-title').textContent = 'Novo Produto';
@@ -1130,9 +1296,26 @@ document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('cli
 let chartInicio = null;
 function renderInicio() {
   const d = new Date();
-  document.getElementById('welcome-title').textContent = `Bem-vindo, ${perfil.nome}!`;
-  document.getElementById('welcome-date').textContent = d.toLocaleDateString('pt-BR', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-  document.getElementById('sidebar-name').textContent = perfil.nome;
+  const nomeLoja = perfil.nome || 'Minha Loja';
+  const diasSemana = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const dataFormatada = `${diasSemana[d.getDay()]}, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+  document.getElementById('welcome-date').textContent = dataFormatada;
+  document.getElementById('welcome-title').textContent = nomeLoja;
+  document.getElementById('sidebar-name').textContent = nomeLoja;
+  // Mobile topbar
+  const mobTag = document.getElementById('mob-store-tag');
+  if(mobTag) mobTag.textContent = nomeLoja;
+  // Clock
+  function updateClock() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const el = document.getElementById('badge-hora');
+    if(el) el.textContent = hh + ':' + mm;
+  }
+  updateClock();
+  if(!window._clockInterval) window._clockInterval = setInterval(updateClock, 30000);
 
   const m = d.getMonth()+1, y = d.getFullYear();
   const vendasMes = vendas.filter(v => { const [vy,vm] = v.data.split('-'); return parseInt(vy)===y && parseInt(vm)===m; });
@@ -1202,6 +1385,9 @@ function renderInicio() {
   const bA = document.getElementById('badge-alerts');
   if(alerts.length > 0) { bA.style.display=''; bA.textContent=alerts.length; }
   else bA.style.display='none';
+  // Sync mobile bottom nav alert dot
+  const bnInicio = document.querySelector('.bn-item[data-page="inicio"]');
+  if(bnInicio) bnInicio.classList.toggle('has-alert', alerts.length > 0);
 
   // Chart últimos 6 meses
   const labels=[], receitas=[], despesas=[];
@@ -1362,8 +1548,48 @@ let chartVendasPeriodo = null;
 function populateClientesSelect() {
   const sel = document.getElementById('venda-cliente');
   const cur = sel.value;
-  sel.innerHTML = '<option value="">— Cliente avulso —</option>' + clientes.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-  sel.value = cur;
+  sel.innerHTML = '<option value="">— Cliente avulso —</option>' + clientes.map(c=>`<option value="${c.id}">${c.nome}${c.cpf?' — '+c.cpf:''}</option>`).join('');
+  if(cur) sel.value = cur;
+}
+
+function toggleClienteRapido() {
+  const form = document.getElementById('form-cliente-rapido');
+  const icone = document.getElementById('icone-cliente-rapido');
+  const aberto = form.style.display !== 'none';
+  form.style.display = aberto ? 'none' : 'block';
+  icone.textContent = aberto ? '＋' : '✕';
+  if (!aberto) {
+    ['qc-nome','qc-cpf','qc-tel','qc-email','qc-end'].forEach(id => document.getElementById(id).value = '');
+    setTimeout(() => document.getElementById('qc-nome').focus(), 50);
+  }
+}
+
+function salvarClienteRapido() {
+  const nomeEl = document.getElementById('qc-nome');
+  const nome = nomeEl.value.trim();
+  if (!nome) {
+    nomeEl.style.borderColor = 'var(--red)';
+    nomeEl.focus();
+    return;
+  }
+  nomeEl.style.borderColor = '';
+  const novo = {
+    id: uid(), nome,
+    cpf:   document.getElementById('qc-cpf').value.trim(),
+    tel:   document.getElementById('qc-tel').value.trim(),
+    email: document.getElementById('qc-email').value.trim(),
+    end:   document.getElementById('qc-end').value.trim(),
+    obs: ''
+  };
+  clientes.push(novo);
+  save();
+  populateClientesSelect();
+  document.getElementById('venda-cliente').value = novo.id;
+  toggleClienteRapido();
+  const sel = document.getElementById('venda-cliente');
+  sel.style.transition = 'border-color 0.3s';
+  sel.style.borderColor = 'var(--green)';
+  setTimeout(() => sel.style.borderColor = '', 1800);
 }
 function populateAnoFilter(selectId, data, dataKey) {
   const anos = [...new Set(data.map(d=>d[dataKey].slice(0,4)))].sort().reverse();
@@ -1808,8 +2034,14 @@ function salvarPerfil() {
 
 function updateSidebarAvatar() {
   const av = document.getElementById('sidebar-avatar');
-  if(perfil.logo) av.innerHTML = `<img src="${perfil.logo}">`;
-  else av.innerHTML = '🏪';
+  const mob = document.getElementById('mob-avatar');
+  if(perfil.logo) {
+    if(av) av.innerHTML = `<img src="${perfil.logo}">`;
+    if(mob) mob.innerHTML = `<img src="${perfil.logo}">`;
+  } else {
+    if(av) av.innerHTML = '🏪';
+    if(mob) mob.innerHTML = '🏪';
+  }
 }
 
 function renderPerfil() {
