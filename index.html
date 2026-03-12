@@ -160,8 +160,7 @@
     flex: 1;
     min-height: 100vh;
     overflow-y: auto;
-    padding: 32px 48px;
-    zoom: 1.05;
+    padding: 32px 36px;
   }
   .page { display: none; }
   .page.active { display: block; animation: fadeIn 0.2s ease; }
@@ -234,7 +233,7 @@
   .modal-overlay.open { display: flex; }
   .modal {
     background: var(--bg2); border: 1px solid var(--border);
-    border-radius: 18px; padding: 32px; width: 580px; max-width: 95vw;
+    border-radius: 18px; padding: 32px; width: 520px; max-width: 95vw;
     max-height: 90vh; overflow-y: auto;
     animation: modalIn 0.2s ease;
   }
@@ -459,10 +458,16 @@
   .sale-item-row select { flex: 2; }
   .sale-item-row input { flex: 1; }
   .sale-item-row .remove-item { cursor: pointer; color: var(--red); font-size: 18px; flex-shrink: 0; }
-  .item-desconto-hidden { display: none !important; } /* Oculta desc. de item individual quando inativo */
 
-  /* TOTALS ROW EM VENDAS */
-  .venda-totals-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  /* TABS (dentro de páginas) */
+  .inner-tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: -1px; }
+  .inner-tab {
+    padding: 10px 18px; font-size: 14px; font-weight: 500;
+    color: var(--text2); cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; transition: all 0.15s;
+  }
+  .inner-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .inner-tab:hover:not(.active) { color: var(--text); }
 
   /* ── MOBILE BOTTOM NAV ── */
   .mobile-topbar {
@@ -533,7 +538,7 @@
     
     /* Força os cards e gráficos a ficarem em 1 coluna (um embaixo do outro) */
     .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr !important; gap: 14px; }
-    .form-row, .venda-totals-row { grid-template-columns: 1fr !important; gap: 12px; }
+    .form-row { grid-template-columns: 1fr !important; gap: 12px; }
     
     .page-header { flex-wrap: wrap; gap: 10px; }
     .page-header .btn { width: 100%; justify-content: center; }
@@ -561,6 +566,9 @@
     .sale-item-row { flex-direction: column; align-items: stretch; gap: 8px; padding: 14px; }
     .sale-item-row select, .sale-item-row input { max-width: 100% !important; flex: 1 1 100%; }
     .sale-item-row .remove-item { align-self: flex-end; background: rgba(255,102,102,0.1); padding: 4px 12px; border-radius: 6px; font-size: 14px; margin-top: 4px; }
+  }
+  @media(max-width: 380px) {
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -1170,22 +1178,22 @@
       <button class="btn btn-ghost btn-sm" onclick="addSaleItem()">+ Adicionar Item</button>
     </div>
 
-    <div class="venda-totals-row">
-      <div class="form-group">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 16px;">
+      <div class="form-group" style="margin-bottom:0">
         <label>Tipo de Desconto</label>
-        <select id="venda-tipo-desconto" onchange="updateDiscountUI()">
-          <option value="fixo">Fixo no Total (R$)</option>
-          <option value="porcento">Porcentagem (%)</option>
-          <option value="produto">Por Produto (R$)</option>
+        <select id="venda-desconto-tipo" onchange="calcVendaTotal()">
+          <option value="fixo_total">Fixo Total (R$)</option>
+          <option value="fixo_item">Por Item (R$)</option>
+          <option value="porcentagem">Porcentagem (%)</option>
         </select>
       </div>
-      <div class="form-group" id="venda-desconto-container">
-        <label id="label-venda-desconto">Desconto (R$)</label>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Valor do Desconto</label>
         <input type="number" id="venda-desconto" min="0" step="0.01" value="0" oninput="calcVendaTotal()">
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:0">
         <label>Total da Venda</label>
-        <input type="text" id="venda-total-disp" readonly style="color:var(--gold);font-weight:600;font-size:16px;">
+        <input type="text" id="venda-total-disp" readonly style="color:var(--gold);font-weight:600">
       </div>
     </div>
     <div class="form-row">
@@ -1501,18 +1509,13 @@ function novoModal(tipo) {
     document.getElementById('modal-venda-title').textContent = 'Nova Venda';
     document.getElementById('venda-id').value = '';
     document.getElementById('venda-data').value = today();
-    
-    // Reseta configs de desconto
-    document.getElementById('venda-tipo-desconto').value = 'fixo';
     document.getElementById('venda-desconto').value = 0;
-    
+    document.getElementById('venda-desconto-tipo').value = 'fixo_total';
     document.getElementById('venda-obs').value = '';
     document.getElementById('sale-items-container').innerHTML = '';
     populateClientesSelect();
     addSaleItem();
-    updateDiscountUI(); // Atualiza a UI para o tipo de desconto selecionado
     calcVendaTotal();
-    
     document.getElementById('form-cliente-rapido').style.display = 'none';
     document.getElementById('icone-cliente-rapido').textContent = '＋';
     openModal('modal-venda');
@@ -1546,8 +1549,10 @@ function renderInicio() {
   document.getElementById('welcome-date').textContent = dataFormatada;
   document.getElementById('welcome-title').textContent = nomeLoja;
   document.getElementById('sidebar-name').textContent = nomeLoja;
+  
   const mobTag = document.getElementById('mob-store-tag');
   if(mobTag) mobTag.textContent = nomeLoja;
+  
   function updateClock() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2,'0');
@@ -1623,6 +1628,7 @@ function renderInicio() {
   const bA = document.getElementById('badge-alerts');
   if(alerts.length > 0) { bA.style.display=''; bA.textContent=alerts.length; }
   else bA.style.display='none';
+  
   const bnInicio = document.querySelector('.bn-item[data-page="inicio"]');
   if(bnInicio) bnInicio.classList.toggle('has-alert', alerts.length > 0);
 
@@ -1793,10 +1799,9 @@ async function deleteProduto(id) {
 }
 
 // ============================================================
-//  VENDAS (ATUALIZADO COM DESCONTO FLEXÍVEL)
+//  VENDAS
 // ============================================================
 let chartVendasPeriodo = null;
-
 function populateClientesSelect() {
   const sel = document.getElementById('venda-cliente');
   const cur = sel.value;
@@ -1851,134 +1856,90 @@ function populateAnoFilter(selectId, data, dataKey) {
   sel.innerHTML = '<option value="">Todos os anos</option>' + anos.map(a=>`<option value="${a}" ${a===cur?'selected':''}>${a}</option>`).join('');
 }
 
-// ── Lógica de Descontos ──
-function updateDiscountUI() {
-  const tipo = document.getElementById('venda-tipo-desconto').value;
-  const globalDesc = document.getElementById('venda-desconto-container');
-  const itemDescontos = document.querySelectorAll('.item-desconto');
-
-  if (tipo === 'produto') {
-    globalDesc.style.display = 'none';
-    itemDescontos.forEach(el => el.classList.remove('item-desconto-hidden'));
-    document.getElementById('venda-desconto').value = 0; // zera desconto global
-  } else {
-    globalDesc.style.display = 'block';
-    itemDescontos.forEach(el => el.classList.add('item-desconto-hidden'));
-    itemDescontos.forEach(el => el.value = ''); // limpa descontos de itens
-
-    if (tipo === 'porcento') {
-      document.getElementById('label-venda-desconto').textContent = 'Desconto (%)';
-    } else {
-      document.getElementById('label-venda-desconto').textContent = 'Desconto (R$)';
-    }
-  }
-  calcVendaTotal();
-}
-
 function addSaleItem() {
   const container = document.getElementById('sale-items-container');
   const div = document.createElement('div');
   div.className = 'sale-item-row';
-  
-  // Adicionado o 3º input para Desconto Individual (escondido por padrão usando a classe)
   div.innerHTML = `
-    <select onchange="calcVendaTotal()" style="flex:2; min-width:120px;">
+    <select onchange="calcVendaTotal()" style="flex:2">
       <option value="">— Produto —</option>
       ${estoque.map(p=>`<option value="${p.id}" data-preco="${p.preco_venda}">${p.nome} (Qtd: ${p.quantidade})</option>`).join('')}
     </select>
-    <input type="number" min="1" value="1" placeholder="Qtd" oninput="calcVendaTotal()" style="flex:1;max-width:70px">
-    <input type="number" min="0" step="0.01" placeholder="Preço" oninput="calcVendaTotal()" style="flex:1;max-width:90px">
-    <input type="number" min="0" step="0.01" placeholder="Desc R$" oninput="calcVendaTotal()" class="item-desconto item-desconto-hidden" style="flex:1;max-width:85px">
+    <input type="number" min="1" value="1" placeholder="Qtd" oninput="calcVendaTotal()" style="flex:1;max-width:80px">
+    <input type="number" min="0" step="0.01" placeholder="Preço" oninput="calcVendaTotal()" style="flex:1;max-width:110px">
     <span class="remove-item" onclick="this.parentElement.remove();calcVendaTotal()">×</span>`;
-    
   div.querySelector('select').addEventListener('change', function() {
     const opt = this.selectedOptions[0];
     if(opt && opt.dataset.preco) div.querySelectorAll('input')[1].value = opt.dataset.preco;
     calcVendaTotal();
   });
-  
   container.appendChild(div);
-  updateDiscountUI(); // Verifica se o input de desconto recém criado deve ser exibido
 }
 
 function calcVendaTotal() {
   let subtotal = 0;
-  let totalDescontoItens = 0;
-  const tipo = document.getElementById('venda-tipo-desconto').value;
-
+  let totalQtd = 0;
+  
   document.querySelectorAll('#sale-items-container .sale-item-row').forEach(row => {
     const qtd = parseFloat(row.querySelectorAll('input')[0].value)||0;
     const preco = parseFloat(row.querySelectorAll('input')[1].value)||0;
-    let descItem = parseFloat(row.querySelectorAll('input')[2].value)||0;
-    
-    if (tipo !== 'produto') descItem = 0; // ignora descontos unitários se não estiver no modo por produto
-    
-    subtotal += (qtd * preco);
-    totalDescontoItens += descItem;
+    subtotal += qtd * preco;
+    totalQtd += qtd;
   });
 
-  let descontoGlobalCalculado = 0;
+  const tipoDesconto = document.getElementById('venda-desconto-tipo').value;
+  const valorInput = parseFloat(document.getElementById('venda-desconto').value)||0;
   
-  if (tipo === 'fixo') {
-      descontoGlobalCalculado = parseFloat(document.getElementById('venda-desconto').value)||0;
-  } else if (tipo === 'porcento') {
-      const pct = parseFloat(document.getElementById('venda-desconto').value)||0;
-      descontoGlobalCalculado = subtotal * (pct / 100);
-  } else if (tipo === 'produto') {
-      descontoGlobalCalculado = totalDescontoItens;
+  let descontoReal = 0;
+
+  if (tipoDesconto === 'fixo_total') {
+    descontoReal = valorInput;
+  } else if (tipoDesconto === 'fixo_item') {
+    descontoReal = valorInput * totalQtd;
+  } else if (tipoDesconto === 'porcentagem') {
+    descontoReal = subtotal * (valorInput / 100);
   }
 
-  const totalFinal = Math.max(0, subtotal - descontoGlobalCalculado);
-  document.getElementById('venda-total-disp').value = fmt(totalFinal);
+  const finalTotal = Math.max(0, subtotal - descontoReal);
+  document.getElementById('venda-total-disp').value = fmt(finalTotal);
   
-  // Retorna os dados calculados para quem chamou a função (como o salvarVenda)
-  return { total: totalFinal, descontoFinal: descontoGlobalCalculado };
+  return {
+    finalTotal: finalTotal,
+    descontoReal: descontoReal
+  };
 }
 
 async function salvarVenda() {
   const data = document.getElementById('venda-data').value;
   if(!data) return alert('Informe a data da venda.');
-  
-  const tipoDesc = document.getElementById('venda-tipo-desconto').value;
   const items = [];
   let valid = true;
-  
   document.querySelectorAll('#sale-items-container .sale-item-row').forEach(row => {
     const sel = row.querySelector('select');
     const qtd = parseFloat(row.querySelectorAll('input')[0].value)||0;
     const preco = parseFloat(row.querySelectorAll('input')[1].value)||0;
-    const descItem = parseFloat(row.querySelectorAll('input')[2].value)||0;
-    
     if(!sel.value) { valid = false; return; }
-    
-    items.push({ 
-        produto_id: sel.value, 
-        quantidade: qtd, 
-        preco: preco,
-        desconto: tipoDesc === 'produto' ? descItem : 0
-    });
+    items.push({ produto_id: sel.value, quantidade: qtd, preco });
   });
-  
   if(!valid || items.length===0) return alert('Adicione ao menos um item válido.');
-  const id = document.getElementById('venda-id').value;
   
-  const calc = calcVendaTotal(); // Pega os cálculos atualizados
+  const id = document.getElementById('venda-id').value;
+  const calcResult = calcVendaTotal();
   
   const obj = {
     id: id || uid(), 
     data, 
     cliente_id: document.getElementById('venda-cliente').value,
     items, 
-    tipo_desconto: tipoDesc,
-    desconto_input: parseFloat(document.getElementById('venda-desconto').value)||0,
-    desconto: calc.descontoFinal, // O desconto final exato monetário que foi abatido
-    total: calc.total,
+    desconto: calcResult.descontoReal,
+    desconto_tipo: document.getElementById('venda-desconto-tipo').value,
+    desconto_valor_original: parseFloat(document.getElementById('venda-desconto').value) || 0,
+    total: calcResult.finalTotal, 
     status: document.getElementById('venda-status').value,
     pagamento: document.getElementById('venda-pagamento').value,
     obs: document.getElementById('venda-obs').value.trim(),
   };
   
-  // Atualizar estoque se for uma venda nova
   if(!id) {
     items.forEach(it => {
       const prod = estoque.find(p=>p.id===it.produto_id);
@@ -2081,31 +2042,21 @@ function showVendaDetail(id) {
   const cli = clientes.find(c=>c.id===v.cliente_id);
   const pgMap = {dinheiro:'💵 Dinheiro',pix:'📱 PIX',cartao_debito:'💳 Débito',cartao_credito:'💳 Crédito',boleto:'📋 Boleto',fiado:'🤝 Fiado'};
   const stMap = {pago:'<span class="badge badge-green">Pago</span>',pendente:'<span class="badge badge-gold">Pendente</span>',agendado:'<span class="badge badge-blue">Agendado</span>'};
-  
-  // Renderização atualizada para mostrar os descontos individuais de produto se houver
   const itensHTML = v.items.map(it=>{
     const p = estoque.find(e=>e.id===it.produto_id);
-    const hasDesc = it.desconto && it.desconto > 0;
-    const descStr = hasDesc ? ` <br><small style="color:var(--red)">Desconto aplicado: -${fmt(it.desconto)}</small>` : '';
-    const totalItem = (it.quantidade * it.preco) - (it.desconto || 0);
-    return `
-      <div class="metric-mini" style="align-items:flex-start; padding: 12px 0;">
-        <div class="label" style="flex:1">
-          <div style="font-weight:600; color:var(--text)">${p?p.nome:it.produto_id}</div>
-          <div style="font-size:12px;color:var(--text3); margin-top:2px;">${it.quantidade}x ${fmt(it.preco)}${descStr}</div>
-        </div>
-        <div class="value">${fmt(totalItem)}</div>
-      </div>`;
+    return `<div class="metric-mini"><span class="label">${p?p.nome:it.produto_id}</span><span style="color:var(--text2);margin-right:12px">${it.quantidade}x ${fmt(it.preco)}</span><span class="value">${fmt(it.quantidade*it.preco)}</span></div>`;
   }).join('');
   
-  // Renderização atualizada para exibir que tipo de desconto global foi aplicado
-  let globalDescHTML = '';
-  if (v.tipo_desconto === 'porcento' && v.desconto_input > 0) {
-      globalDescHTML = `<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto Global (${v.desconto_input}%)</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`;
-  } else if (v.tipo_desconto === 'fixo' && v.desconto > 0) {
-      globalDescHTML = `<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto Global</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`;
-  } else if (!v.tipo_desconto && v.desconto > 0) {
-      globalDescHTML = `<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`;
+  // Detalhes aprimorados do texto do desconto
+  let textDesconto = '';
+  if (v.desconto) {
+    let detalheStr = '';
+    if (v.desconto_tipo === 'porcentagem') {
+      detalheStr = ` (${v.desconto_valor_original}%)`;
+    } else if (v.desconto_tipo === 'fixo_item') {
+      detalheStr = ` (${fmt(v.desconto_valor_original)} por item)`;
+    }
+    textDesconto = `<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto${detalheStr}</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`;
   }
 
   document.getElementById('detalhe-venda-content').innerHTML = `
@@ -2117,9 +2068,9 @@ function showVendaDetail(id) {
     </div>
     <div class="section-title">Itens</div>
     ${itensHTML}
-    ${globalDescHTML}
+    ${textDesconto}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
-      <span style="font-size:15px;font-weight:600">Total Pago</span>
+      <span style="font-size:15px;font-weight:600">Total</span>
       <span style="font-family:'Playfair Display',serif;font-size:24px;color:var(--gold)">${fmt(v.total)}</span>
     </div>
     ${v.obs?`<div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:9px;font-size:14px;color:var(--text2)">${v.obs}</div>`:''}`;
@@ -2534,6 +2485,9 @@ async function fazerLogout() {
   await auth.signOut();
 }
 
+// ============================================================
+//  INIT — Auth state listener
+// ============================================================
 function initYearFilters() {
   const y = new Date().getFullYear();
   ['venda-filter-ano','gasto-filter-ano'].forEach(id => {
@@ -2573,7 +2527,6 @@ auth.onAuthStateChanged(async user => {
 });
 </script>
 </div>
-
 <div class="modal-overlay" id="modal-confirm">
   <div class="modal" style="width:380px;text-align:center">
     <div style="font-size:36px;margin-bottom:12px" id="confirm-icon">🗑️</div>
