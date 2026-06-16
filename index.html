@@ -6,9 +6,10 @@
 <title>Vitrine — Gestão de Comércio</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
   :root {
     --bg: #0d0e11;
@@ -390,11 +391,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* APP hidden until auth */
-  #app-root { 
-    display: none; 
-    width: 100%; 
-    flex: 1; 
-  }
+  #app-root { display: none; }
 
   /* LOADING OVERLAY */
   #loading-overlay {
@@ -526,46 +523,29 @@
     .sidebar { display: none !important; }
     .mobile-topbar { display: flex !important; }
     .bottomnav { display: flex !important; }
-    
-    /* Remove o zoom no celular e ajusta margens */
     .main {
       margin-left: 0 !important;
-      padding: 16px 14px 80px !important;
+      padding: 16px 14px 80px;
       margin-top: 54px;
       min-height: calc(100vh - 54px - 62px);
-      zoom: 1 !important; /* Desativa o zoom no mobile */
     }
-    
-    /* Força os cards e gráficos a ficarem em 1 coluna (um embaixo do outro) */
-    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr !important; gap: 14px; }
-    .form-row { grid-template-columns: 1fr !important; gap: 12px; }
-    
+    .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr 1fr; }
+    .form-row { grid-template-columns: 1fr; }
     .page-header { flex-wrap: wrap; gap: 10px; }
     .page-header .btn { width: 100%; justify-content: center; }
-    
-    .filter-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+    .filter-bar { flex-direction: column; align-items: stretch; }
     .filter-bar input, .filter-bar select { width: 100%; min-width: unset; }
-    
-    /* Ajustes na tabela para não espremer */
-    .table-wrap { font-size: 13px; border-radius: 10px; }
-    td, th { padding: 12px 10px; white-space: nowrap; } /* Evita que o texto quebre e fique alto */
-    
-    /* Modais ocupando a tela de forma mais fluida */
-    .modal { border-radius: 18px 18px 0 0 !important; width: 100% !important; max-width: 100% !important; margin-top: auto; margin-bottom: 0; max-height: 85vh; padding: 24px 20px; }
+    .table-wrap { font-size: 13px; }
+    td, th { padding: 10px 12px; }
+    .modal { border-radius: 18px 18px 0 0 !important; width: 100% !important; max-width: 100% !important; margin-top: auto; margin-bottom: 0; max-height: 90vh; }
     .modal-overlay { align-items: flex-end !important; }
-    
-    /* Ajuste de fontes */
-    .inicio-loja { font-size: 22px; }
-    .card-value { font-size: 26px; }
-    
-    .profile-header { flex-direction: column; align-items: flex-start; gap: 16px; padding: 20px; }
+    .inicio-loja { font-size: 20px; }
+    .card-value { font-size: 24px; }
+    .profile-header { flex-direction: column; align-items: flex-start; gap: 16px; }
     .profile-details { flex-direction: column; gap: 8px; }
     .inicio-badge { display: none; }
-    
-    /* Ajuste no formulário de itens da venda para não amontoar */
-    .sale-item-row { flex-direction: column; align-items: stretch; gap: 8px; padding: 14px; }
-    .sale-item-row select, .sale-item-row input { max-width: 100% !important; flex: 1 1 100%; }
-    .sale-item-row .remove-item { align-self: flex-end; background: rgba(255,102,102,0.1); padding: 4px 12px; border-radius: 6px; font-size: 14px; margin-top: 4px; }
+    .sale-item-row { flex-wrap: wrap; }
+    .sale-item-row select { flex: 1 1 100%; }
   }
   @media(max-width: 380px) {
     .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
@@ -574,6 +554,7 @@
 </head>
 <body>
 
+<!-- AUTH SCREEN -->
 <div id="auth-screen">
   <div class="auth-card">
     <div class="auth-logo">
@@ -587,6 +568,7 @@
     <div id="auth-error" class="auth-error"></div>
     <div id="auth-success" class="auth-success"></div>
 
+    <!-- Login form -->
     <div id="form-login">
       <div class="form-group">
         <label>E-mail</label>
@@ -600,6 +582,7 @@
       <button class="btn btn-gold" style="width:100%;justify-content:center" id="btn-login" onclick="fazerLogin()">Entrar</button>
     </div>
 
+    <!-- Registro form -->
     <div id="form-registro" style="display:none">
       <div class="form-group">
         <label>Nome da sua loja</label>
@@ -618,13 +601,16 @@
   </div>
 </div>
 
+<!-- LOADING OVERLAY -->
 <div id="loading-overlay" style="display:none">
   <div class="loading-spinner"></div>
   <div class="loading-text" id="loading-text">Carregando seus dados...</div>
 </div>
 
+<!-- APP ROOT (hidden until auth) -->
 <div id="app-root">
 
+<!-- MOBILE TOPBAR -->
 <div class="mobile-topbar">
   <div>
     <div class="brand">Vitrine</div>
@@ -636,6 +622,7 @@
   </div>
 </div>
 
+<!-- BOTTOM NAV (mobile) -->
 <nav class="bottomnav" id="bottomnav">
   <div class="bn-item active" data-page="inicio">
     <div class="bn-dot"></div>
@@ -664,6 +651,7 @@
   </div>
 </nav>
 
+<!-- SIDEBAR -->
 <aside class="sidebar">
   <div class="sidebar-logo">
     <div class="brand">Vitrine</div>
@@ -704,8 +692,10 @@
   </div>
 </aside>
 
+<!-- MAIN -->
 <main class="main">
 
+  <!-- ===== INÍCIO ===== -->
   <div class="page active" id="page-inicio">
     <div class="inicio-header">
       <div>
@@ -761,6 +751,7 @@
     </div>
   </div>
 
+  <!-- ===== VENDAS ===== -->
   <div class="page" id="page-vendas">
     <div class="page-header">
       <div>
@@ -839,6 +830,7 @@
     </div>
   </div>
 
+  <!-- ===== CLIENTES ===== -->
   <div class="page" id="page-clientes">
     <div class="page-header">
       <div>
@@ -885,6 +877,7 @@
     </div>
   </div>
 
+  <!-- ===== ESTOQUE ===== -->
   <div class="page" id="page-estoque">
     <div class="page-header">
       <div>
@@ -956,6 +949,7 @@
     </div>
   </div>
 
+  <!-- ===== GASTOS ===== -->
   <div class="page" id="page-gastos">
     <div class="page-header">
       <div>
@@ -1026,6 +1020,7 @@
     </div>
   </div>
 
+  <!-- ===== PERFIL ===== -->
   <div class="page" id="page-perfil">
     <div class="page-header">
       <div>
@@ -1062,6 +1057,9 @@
 
 </main>
 
+<!-- ========== MODAIS ========== -->
+
+<!-- Modal Produto -->
 <div class="modal-overlay" id="modal-produto">
   <div class="modal">
     <div class="modal-title">
@@ -1115,6 +1113,7 @@
   </div>
 </div>
 
+<!-- Modal Venda -->
 <div class="modal-overlay" id="modal-venda">
   <div class="modal" style="width:600px">
     <div class="modal-title">
@@ -1138,6 +1137,7 @@
           <option value="">— Cliente avulso —</option>
         </select>
 
+        <!-- Formulário rápido de novo cliente -->
         <div id="form-cliente-rapido" style="display:none;margin-top:10px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;animation:fadeIn 0.15s ease">
           <div style="font-size:12px;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px">Cadastro rápido de cliente</div>
           <div class="form-row" style="margin-bottom:0">
@@ -1171,27 +1171,17 @@
         </div>
       </div>
     </div>
-    
     <div class="form-group">
       <label>Itens da Venda</label>
       <div id="sale-items-container" class="sale-items-list"></div>
       <button class="btn btn-ghost btn-sm" onclick="addSaleItem()">+ Adicionar Item</button>
     </div>
-
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 16px;">
-      <div class="form-group" style="margin-bottom:0">
-        <label>Tipo de Desconto</label>
-        <select id="venda-desconto-tipo" onchange="calcVendaTotal()">
-          <option value="fixo_total">Fixo Total (R$)</option>
-          <option value="fixo_item">Por Item (R$)</option>
-          <option value="porcentagem">Porcentagem (%)</option>
-        </select>
-      </div>
-      <div class="form-group" style="margin-bottom:0">
-        <label>Valor do Desconto</label>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Desconto (R$)</label>
         <input type="number" id="venda-desconto" min="0" step="0.01" value="0" oninput="calcVendaTotal()">
       </div>
-      <div class="form-group" style="margin-bottom:0">
+      <div class="form-group">
         <label>Total da Venda</label>
         <input type="text" id="venda-total-disp" readonly style="color:var(--gold);font-weight:600">
       </div>
@@ -1228,6 +1218,7 @@
   </div>
 </div>
 
+<!-- Modal Gasto -->
 <div class="modal-overlay" id="modal-gasto">
   <div class="modal">
     <div class="modal-title">
@@ -1270,6 +1261,7 @@
   </div>
 </div>
 
+<!-- Modal Cliente -->
 <div class="modal-overlay" id="modal-cliente">
   <div class="modal">
     <div class="modal-title">
@@ -1312,6 +1304,7 @@
   </div>
 </div>
 
+<!-- Modal Perfil -->
 <div class="modal-overlay" id="modal-perfil">
   <div class="modal">
     <div class="modal-title">
@@ -1365,6 +1358,7 @@
   </div>
 </div>
 
+<!-- Modal Histórico Cliente -->
 <div class="modal-overlay" id="modal-historico">
   <div class="modal" style="width:640px">
     <div class="modal-title">
@@ -1375,6 +1369,7 @@
   </div>
 </div>
 
+<!-- Modal Detalhe Venda -->
 <div class="modal-overlay" id="modal-detalhe-venda">
   <div class="modal" style="width:580px">
     <div class="modal-title">
@@ -1388,23 +1383,28 @@
 <script>
 // ============================================================
 //  FIREBASE CONFIG
+//  ⚠️ Preencha com os valores do seu projeto Firebase.
+//  É SEGURO deixar essas chaves no código público — a proteção
+//  real vem das Security Rules no console do Firebase.
 // ============================================================
 const firebaseConfig = {
-  apiKey:            "AIzaSyBtQB3oVasCl3e3B-g7mAHAdSgcSSrunDQ",
-  authDomain:        "gestor-comercio.firebaseapp.com",
-  databaseURL:       "https://gestor-comercio-default-rtdb.firebaseio.com",
-  projectId:         "gestor-comercio",
-  storageBucket:     "gestor-comercio.firebasestorage.app",
-  messagingSenderId: "460441443371",
-  appId:             "1:460441443371:web:f58d07684ab1a287d49e6e"
+  apiKey:            "COLE_AQUI_SEU_apiKey",
+  authDomain:        "COLE_AQUI_SEU_authDomain",
+  projectId:         "COLE_AQUI_SEU_projectId",
+  storageBucket:     "COLE_AQUI_SEU_storageBucket",
+  messagingSenderId: "COLE_AQUI_SEU_messagingSenderId",
+  appId:             "COLE_AQUI_SEU_appId"
 };
 
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db   = firebase.database();
+const db   = firebase.firestore();
+
+// Habilita cache offline (funciona mesmo sem internet)
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 
 // ============================================================
-//  DATA — variáveis em memória
+//  DATA — variáveis em memória (espelho do Firestore)
 // ============================================================
 let currentUser = null;
 let perfil   = { nome:'Minha Loja', cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' };
@@ -1413,36 +1413,37 @@ let vendas   = [];
 let gastos   = [];
 let clientes = [];
 
-function userRef() { return db.ref('usuarios/' + currentUser.uid); }
+// Referências Firestore para o usuário logado
+function userDoc(col) { return db.collection('usuarios').doc(currentUser.uid).collection(col); }
+function userPerfil() { return db.collection('usuarios').doc(currentUser.uid); }
 
+// Salva tudo no Firestore (batch write por coleção)
 async function save(colecao) {
   if (!currentUser) return;
   const cols = colecao ? [colecao] : ['perfil','estoque','vendas','gastos','clientes'];
-  
-  let updates = {};
   for (const col of cols) {
     if (col === 'perfil') {
-      updates['perfil'] = perfil;
+      await userPerfil().set({ perfil }, { merge: true });
     } else {
       const dados = col === 'estoque'  ? estoque
                   : col === 'vendas'   ? vendas
                   : col === 'gastos'   ? gastos
                   : clientes;
-      updates[col] = dados;
+      await userPerfil().set({ [col]: dados }, { merge: true });
     }
   }
-  await userRef().update(updates);
 }
 
+// Carrega todos os dados do Firestore
 async function carregarDados() {
-  const snapshot = await userRef().once('value');
-  if (snapshot.exists()) {
-    const d = snapshot.val();
+  const snap = await userPerfil().get();
+  if (snap.exists) {
+    const d = snap.data();
     if (d.perfil)   perfil   = { ...perfil, ...d.perfil };
-    if (d.estoque)  estoque  = d.estoque || [];
-    if (d.vendas)   vendas   = d.vendas || [];
-    if (d.gastos)   gastos   = d.gastos || [];
-    if (d.clientes) clientes = d.clientes || [];
+    if (d.estoque)  estoque  = d.estoque;
+    if (d.vendas)   vendas   = d.vendas;
+    if (d.gastos)   gastos   = d.gastos;
+    if (d.clientes) clientes = d.clientes;
   }
 }
 
@@ -1458,13 +1459,16 @@ function navigateTo(page) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
   document.querySelectorAll('.bn-item').forEach(i => i.classList.remove('active'));
   document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+  // Sidebar: activate item or sub-item
   document.querySelectorAll('.nav-item[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
+  // Bottom nav: activate matching or parent
   document.querySelectorAll('.bn-item[data-page="' + page + '"]').forEach(el => el.classList.add('active'));
   document.getElementById('page-' + page).classList.add('active');
   window.scrollTo(0, 0);
   renderPage(page);
 }
 
+// Close more menu on outside click
 document.addEventListener('click', e => {
   const menu = document.getElementById('mobile-more-menu');
   const btn = document.getElementById('bn-mais');
@@ -1494,6 +1498,7 @@ function openModal(id) {
   if(id==='modal-perfil') loadPerfilModal();
 }
 
+// "Novo Produto" button → reset + open
 function novoModal(tipo) {
   if(tipo === 'produto') {
     document.getElementById('modal-produto-title').textContent = 'Novo Produto';
@@ -1510,7 +1515,6 @@ function novoModal(tipo) {
     document.getElementById('venda-id').value = '';
     document.getElementById('venda-data').value = today();
     document.getElementById('venda-desconto').value = 0;
-    document.getElementById('venda-desconto-tipo').value = 'fixo_total';
     document.getElementById('venda-obs').value = '';
     document.getElementById('sale-items-container').innerHTML = '';
     populateClientesSelect();
@@ -1549,10 +1553,10 @@ function renderInicio() {
   document.getElementById('welcome-date').textContent = dataFormatada;
   document.getElementById('welcome-title').textContent = nomeLoja;
   document.getElementById('sidebar-name').textContent = nomeLoja;
-  
+  // Mobile topbar
   const mobTag = document.getElementById('mob-store-tag');
   if(mobTag) mobTag.textContent = nomeLoja;
-  
+  // Clock
   function updateClock() {
     const now = new Date();
     const hh = String(now.getHours()).padStart(2,'0');
@@ -1591,6 +1595,7 @@ function renderInicio() {
   delta(-gastosTotalMes, -gastosTotalAnt, document.getElementById('inicio-gastos-d'));
   delta(lucro, lucroAnt, document.getElementById('inicio-lucro-d'));
 
+  // Pendentes
   const pendentes = vendas.filter(v=>v.status==='agendado');
   const pendEl = document.getElementById('inicio-pendentes');
   if(pendentes.length===0) {
@@ -1602,6 +1607,7 @@ function renderInicio() {
     }).join('');
   }
 
+  // Estoque crítico
   const criticos = estoque.filter(p=>p.quantidade <= p.estoque_minimo);
   const critEl = document.getElementById('inicio-estoque-critico');
   if(criticos.length===0) {
@@ -1614,6 +1620,7 @@ function renderInicio() {
     }).join('');
   }
 
+  // Alertas
   const alertEl = document.getElementById('inicio-alerts');
   let alerts = [];
   if(criticos.filter(p=>p.quantidade===0).length > 0)
@@ -1628,10 +1635,11 @@ function renderInicio() {
   const bA = document.getElementById('badge-alerts');
   if(alerts.length > 0) { bA.style.display=''; bA.textContent=alerts.length; }
   else bA.style.display='none';
-  
+  // Sync mobile bottom nav alert dot
   const bnInicio = document.querySelector('.bn-item[data-page="inicio"]');
   if(bnInicio) bnInicio.classList.toggle('has-alert', alerts.length > 0);
 
+  // Chart últimos 6 meses
   const labels=[], receitas=[], despesas=[];
   for(let i=5;i>=0;i--) {
     const dt = new Date(y, m-1-i, 1);
@@ -1672,6 +1680,7 @@ function renderEstoque() {
   const filterCat = document.getElementById('est-filter-cat').value;
   const filterStatus = document.getElementById('est-filter-status').value;
 
+  // Populate category filter
   const cats = [...new Set(estoque.map(p=>p.categoria).filter(Boolean))];
   const catSel = document.getElementById('est-filter-cat');
   const curCat = catSel.value;
@@ -1689,10 +1698,12 @@ function renderEstoque() {
     return true;
   });
 
+  // Cards
   document.getElementById('est-total-itens').textContent = estoque.reduce((a,p)=>a+p.quantidade,0);
   document.getElementById('est-valor-total').textContent = fmt(estoque.reduce((a,p)=>a+p.quantidade*p.preco_venda,0));
   document.getElementById('est-abaixo-min').textContent = estoque.filter(p=>p.quantidade<=p.estoque_minimo).length;
 
+  // Tabela
   const tbody = document.getElementById('estoque-tbody');
   if(filtered.length===0) {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📦</div><p>Nenhum produto encontrado</p><button class="btn btn-gold" onclick="novoModal('produto')">+ Adicionar Produto</button></div></td></tr>`;
@@ -1716,6 +1727,7 @@ function renderEstoque() {
     }).join('');
   }
 
+  // Niveis de estoque
   const nivelEl = document.getElementById('estoque-niveis');
   nivelEl.innerHTML = estoque.slice(0,10).map(p=>{
     const max = Math.max(p.estoque_minimo*3, p.quantidade, 1);
@@ -1725,6 +1737,7 @@ function renderEstoque() {
     return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:13px;color:var(--text2)">${p.nome}</span><span style="font-size:13px;font-weight:600">${p.quantidade}</span></div><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:${cor}"></div></div></div>`;
   }).join('') || '<div style="color:var(--text3);font-size:14px;padding:10px">Sem produtos</div>';
 
+  // Chart categorias
   if(chartEstoqueCat) chartEstoqueCat.destroy();
   const prodLabels = estoque.map(p => p.nome.length > 18 ? p.nome.slice(0,16)+'…' : p.nome);
   const prodQtds = estoque.map(p => p.quantidade);
@@ -1848,7 +1861,6 @@ function salvarClienteRapido() {
   sel.style.borderColor = 'var(--green)';
   setTimeout(() => sel.style.borderColor = '', 1800);
 }
-
 function populateAnoFilter(selectId, data, dataKey) {
   const anos = [...new Set(data.map(d=>d[dataKey].slice(0,4)))].sort().reverse();
   const sel = document.getElementById(selectId);
@@ -1877,36 +1889,15 @@ function addSaleItem() {
 }
 
 function calcVendaTotal() {
-  let subtotal = 0;
-  let totalQtd = 0;
-  
+  let total = 0;
   document.querySelectorAll('#sale-items-container .sale-item-row').forEach(row => {
     const qtd = parseFloat(row.querySelectorAll('input')[0].value)||0;
     const preco = parseFloat(row.querySelectorAll('input')[1].value)||0;
-    subtotal += qtd * preco;
-    totalQtd += qtd;
+    total += qtd * preco;
   });
-
-  const tipoDesconto = document.getElementById('venda-desconto-tipo').value;
-  const valorInput = parseFloat(document.getElementById('venda-desconto').value)||0;
-  
-  let descontoReal = 0;
-
-  if (tipoDesconto === 'fixo_total') {
-    descontoReal = valorInput;
-  } else if (tipoDesconto === 'fixo_item') {
-    descontoReal = valorInput * totalQtd;
-  } else if (tipoDesconto === 'porcentagem') {
-    descontoReal = subtotal * (valorInput / 100);
-  }
-
-  const finalTotal = Math.max(0, subtotal - descontoReal);
-  document.getElementById('venda-total-disp').value = fmt(finalTotal);
-  
-  return {
-    finalTotal: finalTotal,
-    descontoReal: descontoReal
-  };
+  const desconto = parseFloat(document.getElementById('venda-desconto').value)||0;
+  document.getElementById('venda-total-disp').value = fmt(Math.max(0, total - desconto));
+  return Math.max(0, total - desconto);
 }
 
 async function salvarVenda() {
@@ -1922,34 +1913,38 @@ async function salvarVenda() {
     items.push({ produto_id: sel.value, quantidade: qtd, preco });
   });
   if(!valid || items.length===0) return alert('Adicione ao menos um item válido.');
-  
   const id = document.getElementById('venda-id').value;
-  const calcResult = calcVendaTotal();
-  
+  const total = calcVendaTotal();
   const obj = {
-    id: id || uid(), 
-    data, 
-    cliente_id: document.getElementById('venda-cliente').value,
-    items, 
-    desconto: calcResult.descontoReal,
-    desconto_tipo: document.getElementById('venda-desconto-tipo').value,
-    desconto_valor_original: parseFloat(document.getElementById('venda-desconto').value) || 0,
-    total: calcResult.finalTotal, 
-    status: document.getElementById('venda-status').value,
+    id: id || uid(), data, cliente_id: document.getElementById('venda-cliente').value,
+    items, desconto: parseFloat(document.getElementById('venda-desconto').value)||0,
+    total, status: document.getElementById('venda-status').value,
     pagamento: document.getElementById('venda-pagamento').value,
     obs: document.getElementById('venda-obs').value.trim(),
   };
-  
-  if(!id) {
+  // Atualizar estoque
+  if (id) {
+    // Edição: devolve as quantidades antigas ao estoque antes de descontar as novas
+    const vendaAntiga = vendas.find(v => v.id === id);
+    if (vendaAntiga) {
+      vendaAntiga.items.forEach(it => {
+        const prod = estoque.find(p => p.id === it.produto_id);
+        if (prod) prod.quantidade += it.quantidade; // devolve
+      });
+    }
     items.forEach(it => {
-      const prod = estoque.find(p=>p.id===it.produto_id);
-      if(prod) prod.quantidade = Math.max(0, prod.quantidade - it.quantidade);
+      const prod = estoque.find(p => p.id === it.produto_id);
+      if (prod) prod.quantidade = Math.max(0, prod.quantidade - it.quantidade); // desconta novo
     });
+    const i = vendas.findIndex(v => v.id === id);
+    vendas[i] = obj;
+  } else {
+    items.forEach(it => {
+      const prod = estoque.find(p => p.id === it.produto_id);
+      if (prod) prod.quantidade = Math.max(0, prod.quantidade - it.quantidade);
+    });
+    vendas.unshift(obj);
   }
-  
-  if(id) { const i = vendas.findIndex(v=>v.id===id); vendas[i]=obj; }
-  else vendas.unshift(obj);
-  
   await save('vendas'); await save('estoque'); closeModal('modal-venda');
   document.getElementById('sale-items-container').innerHTML = '';
   document.getElementById('venda-id').value = '';
@@ -1981,6 +1976,7 @@ function renderVendas() {
   document.getElementById('v-ticket').textContent = filtered.length ? fmt(total/filtered.filter(v=>v.status==='pago').length||0) : 'R$ 0';
   document.getElementById('v-pendente').textContent = fmt(pendente);
 
+  // Top produtos
   const prodQtd = {};
   filtered.forEach(v => v.items.forEach(it => { prodQtd[it.produto_id]=(prodQtd[it.produto_id]||0)+it.quantidade; }));
   const topEl = document.getElementById('top-produtos');
@@ -1995,6 +1991,7 @@ function renderVendas() {
     }).join('');
   }
 
+  // Chart periodo
   if(chartVendasPeriodo) chartVendasPeriodo.destroy();
   const byDay = {};
   filtered.filter(v=>v.status==='pago').forEach(v => { byDay[v.data]=(byDay[v.data]||0)+v.total; });
@@ -2005,6 +2002,7 @@ function renderVendas() {
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#555a67',maxTicksLimit:8},grid:{color:'#1a1d24'}},y:{ticks:{color:'#555a67',callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:'#1a1d24'}}} }
   });
 
+  // Tabela
   const tbody = document.getElementById('vendas-tbody');
   if(filtered.length===0) {
     tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💰</div><p>Nenhuma venda encontrada</p><button class="btn btn-gold" onclick="novoModal('venda')">+ Registrar Venda</button></div></td></tr>`;
@@ -2023,9 +2021,10 @@ function renderVendas() {
         <td><span class="badge ${st.cls}">${st.text}</span></td>
         <td style="font-size:13px">${pgMap[v.pagamento]||v.pagamento}</td>
         <td><div style="display:flex;gap:6px">
-          <button class="btn btn-ghost btn-sm" onclick="showVendaDetail('${v.id}')">👁️</button>
-          <button class="btn btn-ghost btn-sm" onclick="marcarPago('${v.id}')">✅</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteVenda('${v.id}')">🗑️</button>
+          <button class="btn btn-ghost btn-sm" onclick="showVendaDetail('${v.id}')" title="Ver detalhes">👁️</button>
+          <button class="btn btn-ghost btn-sm" onclick="editVenda('${v.id}')" title="Editar venda">✏️</button>
+          <button class="btn btn-ghost btn-sm" onclick="marcarPago('${v.id}')" title="Marcar como pago">✅</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteVenda('${v.id}')" title="Excluir">🗑️</button>
         </div></td>
       </tr>`;
     }).join('');
@@ -2046,19 +2045,6 @@ function showVendaDetail(id) {
     const p = estoque.find(e=>e.id===it.produto_id);
     return `<div class="metric-mini"><span class="label">${p?p.nome:it.produto_id}</span><span style="color:var(--text2);margin-right:12px">${it.quantidade}x ${fmt(it.preco)}</span><span class="value">${fmt(it.quantidade*it.preco)}</span></div>`;
   }).join('');
-  
-  // Detalhes aprimorados do texto do desconto
-  let textDesconto = '';
-  if (v.desconto) {
-    let detalheStr = '';
-    if (v.desconto_tipo === 'porcentagem') {
-      detalheStr = ` (${v.desconto_valor_original}%)`;
-    } else if (v.desconto_tipo === 'fixo_item') {
-      detalheStr = ` (${fmt(v.desconto_valor_original)} por item)`;
-    }
-    textDesconto = `<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto${detalheStr}</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`;
-  }
-
   document.getElementById('detalhe-venda-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
       <div><div style="font-size:13px;color:var(--text2)">Data</div><div style="font-weight:600">${fmtDate(v.data)}</div></div>
@@ -2068,13 +2054,61 @@ function showVendaDetail(id) {
     </div>
     <div class="section-title">Itens</div>
     ${itensHTML}
-    ${textDesconto}
+    ${v.desconto?`<div class="metric-mini"><span class="label" style="color:var(--red)">Desconto</span><span class="value" style="color:var(--red)">- ${fmt(v.desconto)}</span></div>`:''}
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
       <span style="font-size:15px;font-weight:600">Total</span>
       <span style="font-family:'Playfair Display',serif;font-size:24px;color:var(--gold)">${fmt(v.total)}</span>
     </div>
     ${v.obs?`<div style="margin-top:14px;padding:12px;background:var(--bg3);border-radius:9px;font-size:14px;color:var(--text2)">${v.obs}</div>`:''}`;
   openModal('modal-detalhe-venda');
+}
+
+function editVenda(id) {
+  const v = vendas.find(v => v.id === id);
+  if (!v) return;
+
+  // Preenche cabeçalho do modal
+  document.getElementById('modal-venda-title').textContent = 'Editar Venda';
+  document.getElementById('venda-id').value    = v.id;
+  document.getElementById('venda-data').value  = v.data;
+  document.getElementById('venda-desconto').value = v.desconto || 0;
+  document.getElementById('venda-obs').value   = v.obs || '';
+  document.getElementById('venda-status').value    = v.status;
+  document.getElementById('venda-pagamento').value = v.pagamento;
+
+  // Preenche select de cliente
+  populateClientesSelect();
+  document.getElementById('venda-cliente').value = v.cliente_id || '';
+
+  // Recria as linhas de itens
+  const container = document.getElementById('sale-items-container');
+  container.innerHTML = '';
+  v.items.forEach(it => {
+    const div = document.createElement('div');
+    div.className = 'sale-item-row';
+    div.innerHTML = `
+      <select style="flex:2">
+        <option value="">— Produto —</option>
+        ${estoque.map(p => `<option value="${p.id}" data-preco="${p.preco_venda}"${p.id === it.produto_id ? ' selected' : ''}>${p.nome} (Qtd: ${p.quantidade})</option>`).join('')}
+      </select>
+      <input type="number" min="1" value="${it.quantidade}" placeholder="Qtd" style="flex:1;max-width:80px">
+      <input type="number" min="0" step="0.01" value="${it.preco}" placeholder="Preço" style="flex:1;max-width:110px">
+      <span class="remove-item" onclick="this.parentElement.remove();calcVendaTotal()">×</span>`;
+    div.querySelector('select').addEventListener('change', function() {
+      const opt = this.selectedOptions[0];
+      if (opt && opt.dataset.preco) div.querySelectorAll('input')[1].value = opt.dataset.preco;
+      calcVendaTotal();
+    });
+    div.querySelectorAll('input').forEach(inp => inp.addEventListener('input', calcVendaTotal));
+    container.appendChild(div);
+  });
+
+  // Reset cadastro rápido
+  document.getElementById('form-cliente-rapido').style.display = 'none';
+  document.getElementById('icone-cliente-rapido').textContent = '＋';
+
+  calcVendaTotal();
+  document.getElementById('modal-venda').classList.add('open');
 }
 
 async function deleteVenda(id) {
@@ -2119,6 +2153,7 @@ function renderGastos() {
   document.getElementById('g-maior-nome').textContent = maior ? maior.descricao : '';
   document.getElementById('g-cats').textContent = [...new Set(filtered.map(g=>g.categoria).filter(Boolean))].length;
 
+  // Chart categorias
   const catData = {};
   filtered.forEach(g => { const c=g.categoria||'Outros'; catData[c]=(catData[c]||0)+g.valor; });
   if(chartGastosCat) chartGastosCat.destroy();
@@ -2130,6 +2165,7 @@ function renderGastos() {
     });
   }
 
+  // Chart tempo
   const byDay = {};
   filtered.forEach(g => { byDay[g.data]=(byDay[g.data]||0)+g.valor; });
   const days = Object.keys(byDay).sort().slice(-30);
@@ -2140,6 +2176,7 @@ function renderGastos() {
     options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{color:'#555a67',maxTicksLimit:8},grid:{color:'#1a1d24'}},y:{ticks:{color:'#555a67',callback:v=>'R$'+v.toLocaleString('pt-BR')},grid:{color:'#1a1d24'}}} }
   });
 
+  // Tabela
   const tbody = document.getElementById('gastos-tbody');
   if(filtered.length===0) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📊</div><p>Nenhum gasto encontrado</p><button class="btn btn-gold" onclick="novoModal('gasto')">+ Registrar Gasto</button></div></td></tr>`;
@@ -2452,7 +2489,8 @@ async function fazerRegistro() {
   clearAuthMessages();
   try {
     const cred = await auth.createUserWithEmailAndPassword(email, senha);
-    await db.ref('usuarios/' + cred.user.uid).set({
+    // Salva nome da loja no perfil inicial
+    await db.collection('usuarios').doc(cred.user.uid).set({
       perfil: { nome: nomeLoja, cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' },
       estoque: [], vendas: [], gastos: [], clientes: []
     });
@@ -2500,6 +2538,7 @@ function initYearFilters() {
 
 auth.onAuthStateChanged(async user => {
   if (user) {
+    // ── Usuário logado ──
     currentUser = user;
     document.getElementById('auth-screen').style.display    = 'none';
     document.getElementById('loading-overlay').style.display = 'flex';
@@ -2515,18 +2554,23 @@ auth.onAuthStateChanged(async user => {
     initYearFilters();
     renderInicio();
   } else {
+    // ── Não autenticado ──
     currentUser = null;
+    // Reset data
     perfil   = { nome:'Minha Loja', cnpj:'', tel:'', email:'', end:'', segmento:'', desc:'', logo:'' };
     estoque  = []; vendas = []; gastos = []; clientes = [];
     document.getElementById('app-root').style.display    = 'none';
     document.getElementById('loading-overlay').style.display = 'none';
     document.getElementById('auth-screen').style.display = 'flex';
+    // Reset auth form
     setAuthLoading('btn-login', false);
     setAuthLoading('btn-registro', false);
   }
 });
 </script>
-</div>
+</div><!-- /app-root -->
+
+<!-- CUSTOM CONFIRM MODAL -->
 <div class="modal-overlay" id="modal-confirm">
   <div class="modal" style="width:380px;text-align:center">
     <div style="font-size:36px;margin-bottom:12px" id="confirm-icon">🗑️</div>
